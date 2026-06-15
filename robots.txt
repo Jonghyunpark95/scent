@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# 사이트맵 (도메인 연결 후 주소 교체)
+# Sitemap: https://your-domain.com/sitemap.xml
