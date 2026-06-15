@@ -267,13 +267,17 @@ function recommend(noteScore, familyScore){
 }
 function pcard(p, match){
   const tags = allNotes(p).slice(0,3).map(k=>`<span>${getNote(k).emoji} ${esc(getNote(k).name)}</span>`).join("");
+  let foot;
+  if (p.price) foot = `<div class="price">${won(p.price)}</div>`;
+  else if (p._rating) foot = `<div class="price">⭐ ${Number(p._rating).toFixed(1)}${p._year?` · ${p._year}`:""}</div>`;
+  else foot = `<div class="price">${p._year?`${p._year}년 출시`:"향수 정보"}</div>`;
   return `<div class="pcard" data-id="${p.id}">
     <div class="art">${match!=null?`<div class="match">${match}% 매치</div>`:""}${artHTML(p)}</div>
     <div class="info">
-      <div class="brand">${esc(p.brand)} · ${esc(p.gender)}</div>
+      <div class="brand">${esc(p.brand)}${p._api?"":` · ${esc(p.gender)}`}</div>
       <div class="name">${esc(p.name)}</div>
       <div class="note-tags">${tags}</div>
-      <div class="price">${won(p.price)}</div>
+      ${foot}
     </div>
   </div>`;
 }
@@ -347,23 +351,52 @@ async function encSearchAPI(q, local){
   $("#encGrid").innerHTML = local.map(p=>pcard(p,null)).join("") + apiCards;
 }
 
-/* API 응답 → 내부 perfume 형태로 정규화 (응답 스키마가 달라도 최대한 흡수) */
+/* 영어 노트명/슬러그 → 내장 NOTES 키 (한글명·비유·이모지 재사용용) */
+const EN_NOTE = {
+  bergamot:"bergamot", lemon:"lemon", orange:"orange", grapefruit:"grapefruit", mandarin:"mandarin",
+  apple:"apple", peach:"peach", blackcurrant:"blackcurrant", "black-currant":"blackcurrant", pear:"pear",
+  raspberry:"raspberry", lychee:"lychee", pineapple:"pineapple", plum:"peach",
+  rose:"rose", jasmine:"jasmine", peony:"peony", iris:"iris", "lily-of-the-valley":"lily", lily:"lily",
+  tuberose:"tuberose", "orange-blossom":"orangeblossom", neroli:"orangeblossom", violet:"violet",
+  "ylang-ylang":"ylang", "ylang":"ylang", geranium:"geranium",
+  mint:"mint", basil:"basil", lavender:"lavender", sage:"sage", "clary-sage":"sage", rosemary:"rosemary",
+  fig:"fig", "green-notes":"greenleaves", galbanum:"galbanum",
+  pepper:"pepper", "black-pepper":"pepper", "pink-pepper":"pinkpepper", "sichuan-pepper":"pepper",
+  cardamom:"cardamom", cinnamon:"cinnamon", ginger:"ginger", saffron:"saffron", clove:"clove",
+  vanilla:"vanilla", caramel:"caramel", honey:"honey", chocolate:"chocolate", cacao:"cacao",
+  coffee:"coffee", almond:"almond", coconut:"coconut", "tonka-bean":"tonka", tonka:"tonka",
+  sandalwood:"sandalwood", cedarwood:"cedar", cedar:"cedar", vetiver:"vetiver", patchouli:"patchouli",
+  oud:"oud", agarwood:"oud", "guaiac-wood":"guaiac", cypress:"cypress", pine:"pine",
+  amber:"amber", ambroxan:"amber", incense:"incense", benzoin:"benzoin", labdanum:"labdanum",
+  myrrh:"myrrh", elemi:"incense", frankincense:"incense",
+  musk:"musk", "white-musk":"whitemusk", leather:"leather", ambergris:"ambergris", oakmoss:"oakmoss",
+  marine:"marine", "sea-salt":"seasalt", "sea-notes":"marine", water:"watery", tea:"tea",
+  tobacco:"tobacco", rum:"rum", chestnut:"chestnut", ambrette:"ambrette",
+};
+function resolveNoteKey(n){
+  const id = norm(n.id || ""), nm = norm(n.name || "");
+  return EN_NOTE[n.id] || EN_NOTE[id] || EN_NOTE[nm] || (n.name || n.id || "노트");
+}
+
+/* 프록시 정규화 응답 → 내부 perfume 형태 (이 API는 노트가 평면 리스트) */
+const apiCache = (window.__apiCache = {});
 function apiToPerfume(r){
-  const pick = (...ks)=>{ for(const k of ks){ if(r[k]!=null) return r[k]; } return null; };
-  const arr = v => Array.isArray(v) ? v : (typeof v==="string" ? v.split(/[,;/]/).map(s=>s.trim()).filter(Boolean) : []);
-  return {
-    id: "api-" + (pick("id","slug","perfumeId") || hash(JSON.stringify(r))),
-    name: pick("name","perfume","title","fragrance") || "이름 미상",
-    brand: pick("brand","designer","house","company") || "브랜드 미상",
-    gender: pick("gender","sex") || "유니섹스",
-    price: pick("price") || 0,
-    top: arr(pick("top","topNotes","notes_top")),
-    middle: arr(pick("middle","heart","middleNotes","heartNotes","notes_middle")),
-    base: arr(pick("base","baseNotes","notes_base")),
-    desc: pick("description","accords","year") ? String(pick("description","accords")||"") : "",
-    _img: pick("image","imageUrl","image_url","thumbnail","img","picture") || null,
-    _api: true,
+  const noteKeys = (r.notes || []).map(resolveNoteKey);
+  const year = r.releasedAt ? new Date(r.releasedAt).getFullYear() : null;
+  const p = {
+    id: "api-" + r.id,
+    name: r.name || "이름 미상",
+    brand: r.brand || "브랜드 미상",
+    gender: "유니섹스",
+    price: 0,
+    top: [], middle: noteKeys, base: [],   // 평면 노트 → middle에 모음
+    desc: "",
+    _img: r.image || null,
+    _api: true, _flat: true,
+    _year: year, _rating: r.rating, _reviews: r.reviews, _perfumers: r.perfumers || [],
   };
+  apiCache[p.id] = p;
+  return p;
 }
 
 /* 추천 카드에 API 사진 보강 */
@@ -371,9 +404,9 @@ async function enrichRecImages(recs){
   if (!API.enabled) return;
   for (const r of recs){
     if (r.p._img) continue;
-    const data = await apiFetch("search", { q: r.p.name });
+    const data = await apiFetch("search", { q: r.p.name, limit: 1 });
     const hit = data && data.results && data.results[0];
-    const img = hit && (hit.image || hit.imageUrl || hit.image_url || hit.thumbnail);
+    const img = hit && hit.image;
     if (img){
       r.p._img = img;
       const card = $(`#recGrid .pcard[data-id="${r.p.id}"] .art`);
@@ -412,20 +445,31 @@ async function pingAPI(){
    상세 모달
    ========================================================================= */
 function openModal(p){
-  const layerHTML = ["top","middle","base"].map(L=>{
-    const label = {top:"탑 노트", middle:"미들 노트", base:"베이스 노트"}[L];
-    const ns = p[L].map(k=>`<span class="n">${getNote(k).emoji} ${esc(getNote(k).name)}</span>`).join("") || `<span class="n">정보 없음</span>`;
-    return `<div class="lyr"><h5>${label}</h5><div class="ns">${ns}</div></div>`;
-  }).join("");
+  const noteChips = arr => arr.map(k=>`<span class="n">${getNote(k).emoji} ${esc(getNote(k).name)}</span>`).join("");
+  let layerHTML;
+  if (p._flat){
+    layerHTML = `<div class="lyr"><h5>노트</h5><div class="ns">${noteChips(allNotes(p)) || '<span class="n">정보 없음</span>'}</div></div>`;
+  } else {
+    layerHTML = ["top","middle","base"].map(L=>{
+      const label = {top:"탑 노트", middle:"미들 노트", base:"베이스 노트"}[L];
+      return `<div class="lyr"><h5>${label}</h5><div class="ns">${noteChips(p[L]) || '<span class="n">정보 없음</span>'}</div></div>`;
+    }).join("");
+  }
+  const meta = [];
+  if (p._year)   meta.push(`📅 ${p._year}년`);
+  if (p._rating) meta.push(`⭐ ${Number(p._rating).toFixed(1)}${p._reviews?` (${p._reviews})`:""}`);
+  if (p._perfumers && p._perfumers.length) meta.push(`👃 ${esc(p._perfumers.join(", "))}`);
+  const footPrice = p.price ? `<div class="price" style="color:var(--brand3);font-weight:900;margin-top:4px">${won(p.price)}</div>` : "";
   $("#modalBody").innerHTML = `
     <button class="close" id="modalClose">✕</button>
     <div class="head">
       <div class="thumb">${artHTML(p)}</div>
-      <div><div class="brand" style="color:var(--muted);font-weight:700">${esc(p.brand)} · ${esc(p.gender)}</div>
+      <div><div class="brand" style="color:var(--muted);font-weight:700">${esc(p.brand)}${p._api?"":` · ${esc(p.gender)}`}</div>
       <h3>${esc(p.name)}</h3>
-      ${p.price?`<div class="price" style="color:var(--brand3);font-weight:900;margin-top:4px">${won(p.price)}</div>`:""}</div>
+      ${footPrice}</div>
     </div>
-    ${p.desc?`<p style="color:var(--muted);margin-top:14px">${esc(p.desc)}</p>`:""}
+    ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
+    ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;

@@ -1,48 +1,48 @@
 /* =========================================================================
-   Vercel 서버리스 함수: RapidAPI 향수 API 프록시
+   Vercel 서버리스 함수: RapidAPI "Fragrance API" 프록시 (Meilisearch 기반)
    - 브라우저는 이 함수만 호출하고, 실제 RapidAPI 키는 서버 환경변수에만 존재.
-   - 필요한 환경변수 (Vercel > Project > Settings > Environment Variables):
-       RAPIDAPI_KEY         (필수) 발급받은 X-RapidAPI-Key
-       RAPIDAPI_HOST        (필수) 구독한 API의 호스트
-                                   예) fragrancefinder-api.p.rapidapi.com
-       RAPIDAPI_SEARCH_PATH (선택) 검색 경로 템플릿 ({q}=검색어)
-                                   기본값: /perfumes/search?q={q}
-   - 구독한 API에 맞게 RAPIDAPI_HOST / RAPIDAPI_SEARCH_PATH 만 바꾸면 됩니다.
+   - 환경변수 (Vercel > Project > Settings > Environment Variables):
+       RAPIDAPI_KEY   (필수) X-RapidAPI-Key
+       RAPIDAPI_HOST  (선택) 기본값 fragrance-api.p.rapidapi.com
+   - 엔드포인트: POST /multi-search  (indexUid: "fragrances")
    ========================================================================= */
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=86400, stale-while-revalidate=604800");
 
   const KEY  = process.env.RAPIDAPI_KEY;
-  const HOST = process.env.RAPIDAPI_HOST;
-  const SEARCH_PATH = process.env.RAPIDAPI_SEARCH_PATH || "/perfumes/search?q={q}";
-
+  const HOST = process.env.RAPIDAPI_HOST || "fragrance-api.p.rapidapi.com";
   const action = (req.query.action || "search").toString();
 
-  // 연결 상태 확인 (프런트가 키 등록 여부 판단)
   if (action === "status") {
-    return res.status(200).json({ ok: true, configured: Boolean(KEY && HOST) });
+    return res.status(200).json({ ok: true, configured: Boolean(KEY) });
   }
-
-  if (!KEY || !HOST) {
+  if (!KEY) {
     return res.status(200).json({ ok: false, reason: "not_configured", results: [] });
   }
 
   try {
     if (action === "search") {
       const q = (req.query.q || "").toString().trim();
+      const limit = Math.min(parseInt(req.query.limit, 10) || 12, 20);
       if (!q) return res.status(200).json({ ok: true, results: [] });
 
-      const path = SEARCH_PATH.replace("{q}", encodeURIComponent(q));
-      const url = `https://${HOST}${path}`;
-
-      const r = await fetch(url, {
-        headers: { "X-RapidAPI-Key": KEY, "X-RapidAPI-Host": HOST },
+      const r = await fetch(`https://${HOST}/multi-search`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-RapidAPI-Key": KEY,
+          "X-RapidAPI-Host": HOST,
+        },
+        body: JSON.stringify({
+          queries: [{ indexUid: "fragrances", q, limit, offset: 0 }],
+        }),
       });
       if (!r.ok) return res.status(200).json({ ok: false, status: r.status, results: [] });
 
       const raw = await r.json();
-      return res.status(200).json({ ok: true, results: normalize(raw) });
+      const hits = (raw.results && raw.results[0] && raw.results[0].hits) || [];
+      return res.status(200).json({ ok: true, results: hits.map(toClean) });
     }
 
     return res.status(400).json({ ok: false, reason: "unknown_action" });
@@ -51,13 +51,18 @@ export default async function handler(req, res) {
   }
 }
 
-/* 다양한 API 응답 스키마를 배열로 흡수 */
-function normalize(raw) {
-  if (Array.isArray(raw)) return raw;
-  if (!raw || typeof raw !== "object") return [];
-  for (const k of ["results", "data", "perfumes", "items", "hits", "products"]) {
-    if (Array.isArray(raw[k])) return raw[k];
-  }
-  // 단일 객체면 배열로 감싸기
-  return [raw];
+/* Meilisearch hit → 프런트가 쓰기 쉬운 평탄한 형태 */
+function toClean(h) {
+  return {
+    id: h.id,
+    name: h.name || "",
+    brand: (h.brand && h.brand.name) || "",
+    image: (h.image && h.image.url) || null,
+    notes: Array.isArray(h.notes) ? h.notes.map(n => ({ id: n.id, name: n.name })) : [],
+    perfumers: Array.isArray(h.perfumers) ? h.perfumers.map(p => p.name).filter(Boolean) : [],
+    releasedAt: h.releasedAt || null,
+    rating: h.reviewsScoreAvg ?? null,
+    reviews: h.reviewsCount ?? null,
+    popularity: h.popularityScore ?? null,
+  };
 }
