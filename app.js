@@ -20,54 +20,62 @@ function fam(key){ return getNote(key).family; }
 function famMeta(f){ return NOTE_FAMILIES[f] || { label: f, emoji: "•", color: "#9b93c4" }; }
 const allNotes = p => [...p.top, ...p.middle, ...p.base];
 
-/* ---------- 향수병 일러스트 (SVG) ---------- */
-/* 향 계열의 색을 섞어 고유한 병 그래픽을 만든다. 절대 깨지지 않는 아이코닉 비주얼. */
-function bottleColors(p){
-  const counts = {};
-  allNotes(p).forEach(k => { const f = fam(k); counts[f] = (counts[f]||0)+1; });
-  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,2).map(e=>e[0]);
-  const c1 = famMeta(top[0] || "woody").color;
-  const c2 = famMeta(top[1] || top[0] || "musk").color;
-  return [c1, c2];
-}
-function dominantEmoji(p){
-  const counts = {};
-  allNotes(p).forEach(k => { const f = fam(k); counts[f] = (counts[f]||0)+1; });
-  const f = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "woody";
-  return famMeta(f).emoji;
-}
-function bottleSVG(p){
-  const [c1, c2] = bottleColors(p);
-  const id = "g" + Math.abs(hash(p.id));
-  const emoji = dominantEmoji(p);
-  const initial = (p.brand || "?").trim().charAt(0);
-  return `<svg class="bottle" viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${esc(p.name)}">
-    <defs>
-      <linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/>
-      </linearGradient>
-      <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="rgba(255,255,255,.55)"/><stop offset="1" stop-color="rgba(255,255,255,0)"/>
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="120" height="150" fill="rgba(255,255,255,.03)"/>
-    <rect x="50" y="14" width="20" height="14" rx="3" fill="#2a2350"/>
-    <rect x="54" y="24" width="12" height="10" fill="#3a3170"/>
-    <rect x="28" y="34" width="64" height="100" rx="18" fill="url(#${id})"/>
-    <rect x="34" y="40" width="22" height="70" rx="11" fill="url(#${id}g)" opacity=".7"/>
-    <text x="60" y="92" font-size="34" text-anchor="middle" dominant-baseline="central">${emoji}</text>
-    <text x="60" y="122" font-size="11" font-weight="800" text-anchor="middle" fill="rgba(20,12,30,.65)">${esc(initial)}</text>
-  </svg>`;
-}
 function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;} return h; }
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
-/* 이미지: API 사진(p._img)이 있으면 사진, 없으면 일러스트 */
-function artHTML(p){
-  if (p._img) return `<img src="${esc(p._img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.replaceWith(document.createRange().createContextualFragment(window.__bottle(this.dataset.id)))" data-id="${esc(p.id)}">`;
-  return bottleSVG(p);
+/* =========================================================================
+   이미지 — RapidAPI 실제 제품 사진 우선, 없으면 미니멀 플레이스홀더
+   ========================================================================= */
+function getEnTerm(p){ return p.en || (typeof EN_NAMES !== "undefined" && EN_NAMES[p.id]) || p.name; }
+function placeholderHTML(){
+  return `<div class="ph"><svg viewBox="0 0 48 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">
+    <rect x="19" y="3" width="10" height="7" rx="1.5"/>
+    <path d="M16 11h16c1 3.2 4 4 4 9v32a7 7 0 0 1-7 7H19a7 7 0 0 1-7-7V20c0-5 3-5.8 4-9z"/></svg></div>`;
 }
-window.__bottle = id => bottleSVG(PERFUMES.find(x=>x.id===id) || {id,name:"",brand:"?",top:[],middle:[],base:[]});
+function artHTML(p){
+  if (p._img) return `<img src="${esc(p._img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.outerHTML=window.__ph()">`;
+  return placeholderHTML();
+}
+window.__ph = () => placeholderHTML();
+function findPerfume(id){ return PERFUMES.find(x => x.id === id) || (window.__apiCache && window.__apiCache[id]); }
+
+/* 이미지 캐시 (세션 유지 → API 호출 절약) */
+const imgCache = {};
+async function fetchImage(term){
+  if (!term) return null;
+  if (term in imgCache) return imgCache[term];
+  try{ const s = sessionStorage.getItem("img:" + term); if (s !== null) return (imgCache[term] = s || null); }catch(e){}
+  const data = await apiFetch("search", { q: term, limit: 1 });
+  const hit = data && data.results && data.results[0];
+  const url = (hit && hit.image) || null;
+  imgCache[term] = url;
+  try{ sessionStorage.setItem("img:" + term, url || ""); }catch(e){}
+  return url;
+}
+
+/* 카드가 화면에 보이면 실제 사진을 지연 로딩 */
+let _imgObs;
+function observeImages(scope){
+  if (!API.enabled) return;
+  if (!_imgObs){
+    _imgObs = new IntersectionObserver(ents=>{
+      ents.forEach(en=>{ if(en.isIntersecting){ _imgObs.unobserve(en.target); lazyLoadImage(en.target); } });
+    }, { rootMargin: "300px" });
+  }
+  (scope || document).querySelectorAll(".pcard, .fcard").forEach(c=>{
+    const p = findPerfume(c.dataset.id);
+    if (p && !p._img && !c.dataset.obs){ c.dataset.obs = "1"; _imgObs.observe(c); }
+  });
+}
+async function lazyLoadImage(card){
+  const p = findPerfume(card.dataset.id); if (!p || p._img) return;
+  const url = await fetchImage(getEnTerm(p));
+  if (url){
+    p._img = url;
+    const art = card.querySelector(".art");
+    if (art){ const m = art.querySelector(".match"); art.innerHTML = (m ? m.outerHTML : "") + artHTML(p); }
+  }
+}
 
 /* ---------- 상태 ---------- */
 const state = { selected: [] };   // 선택한 향수 id 배열
@@ -90,7 +98,7 @@ function renderSuggest(q){
   } else {
     suggest.innerHTML = hits.map(p => `
       <div class="row" data-id="${p.id}">
-        <div class="thumb">${bottleSVG(p)}</div>
+        <div class="thumb">${artHTML(p)}</div>
         <div><b>${esc(p.name)}</b><br><small>${esc(p.brand)} · ${esc(p.gender)}</small></div>
       </div>`).join("");
   }
@@ -175,8 +183,6 @@ function analyze(){
   r.classList.add("show");
   r.scrollIntoView({ behavior:"smooth", block:"start" });
 
-  // API 사진으로 추천 카드 보강 (있으면)
-  enrichRecImages(recs);
 }
 
 /* ---- 취향 프로필 (계열 막대) ---- */
@@ -283,6 +289,7 @@ function pcard(p, match){
 }
 function renderRecs(recs){
   $("#recGrid").innerHTML = recs.map(r => pcard(r.p, r.match)).join("");
+  observeImages($("#recGrid"));
 }
 
 /* ---- 베이스향 기반 추천 ---- */
@@ -301,6 +308,7 @@ function renderBaseRecs(baseNoteScore){
   $("#baseRecGrid").innerHTML = recs.length
     ? recs.map(r => pcard(r.p, null)).join("")
     : `<div class="empty-state">조건에 맞는 향수를 찾지 못했어요.</div>`;
+  observeImages($("#baseRecGrid"));
 }
 
 /* =========================================================================
@@ -321,6 +329,23 @@ function initBrands(){
 function renderBrand(b){
   const list = b==="전체" ? PERFUMES : PERFUMES.filter(p=>p.brand===b);
   $("#brandGrid").innerHTML = list.map(p=>pcard(p, null)).join("");
+  observeImages($("#brandGrid"));
+}
+
+/* =========================================================================
+   상단 인기 향수 갤러리 (실제 사진으로 시선 잡기)
+   ========================================================================= */
+const FEATURED = ["kilian-angels","mfk-baccarat","ll-santal33","diptyque-philo","tf-lostcherry","creed-aventus","dior-sauvage","byredo-gypsy"];
+function fcard(p){
+  return `<div class="fcard" data-id="${p.id}">
+    <div class="art">${artHTML(p)}</div>
+    <div class="finfo"><div class="brand">${esc(p.brand)}</div><div class="name">${esc(p.name)}</div></div>
+  </div>`;
+}
+function renderFeatured(){
+  const rail = $("#featuredRail"); if(!rail) return;
+  rail.innerHTML = FEATURED.map(id=>{ const p = PERFUMES.find(x=>x.id===id); return p?fcard(p):""; }).join("");
+  observeImages(rail);
 }
 
 /* =========================================================================
@@ -336,6 +361,7 @@ encInput.addEventListener("input", e=>{
   const local = PERFUMES.filter(p=> norm(p.name).includes(norm(q)) || norm(p.brand).includes(norm(q)));
   $("#encGrid").innerHTML = local.length ? local.map(p=>pcard(p,null)).join("")
     : `<div class="empty-state">내장 DB에 없어요. <span class="spinner"></span> RapidAPI에서 찾는 중…</div>`;
+  observeImages($("#encGrid"));
   // API 검색 (디바운스)
   encTimer = setTimeout(()=>encSearchAPI(q, local), 450);
 });
@@ -349,6 +375,7 @@ async function encSearchAPI(q, local){
   // API 결과를 카드로 (내장 DB 우선 표시 후 이어붙임)
   const apiCards = data.results.map(apiToPerfume).map(p=>pcard(p,null)).join("");
   $("#encGrid").innerHTML = local.map(p=>pcard(p,null)).join("") + apiCards;
+  observeImages($("#encGrid"));
 }
 
 /* 영어 노트명/슬러그 → 내장 NOTES 키 (한글명·비유·이모지 재사용용) */
@@ -435,9 +462,10 @@ async function pingAPI(){
   const el = $("#apiState");
   if (API.enabled){
     el.classList.add("live");
-    el.querySelector("span").textContent = "RapidAPI 연결됨 · 실시간 향수 데이터 사용 가능";
+    el.querySelector("span").textContent = "실시간 향수 데이터 연결됨 · 전 세계 10만+ 향수";
+    observeImages(document);   // 이미 그려진 카드들의 실제 사진 로딩 시작
   } else {
-    el.querySelector("span").textContent = "내장 DB 모드 (RapidAPI 키 미설정 — 검색·사진은 키 등록 후 활성화)";
+    el.querySelector("span").textContent = "내장 DB 모드 (실제 사진/검색은 API 연결 후 자동 활성화)";
   }
 }
 
@@ -459,7 +487,7 @@ function openModal(p){
   if (p._year)   meta.push(`📅 ${p._year}년`);
   if (p._rating) meta.push(`⭐ ${Number(p._rating).toFixed(1)}${p._reviews?` (${p._reviews})`:""}`);
   if (p._perfumers && p._perfumers.length) meta.push(`👃 ${esc(p._perfumers.join(", "))}`);
-  const footPrice = p.price ? `<div class="price" style="color:var(--brand3);font-weight:900;margin-top:4px">${won(p.price)}</div>` : "";
+  const footPrice = p.price ? `<div class="price" style="color:var(--accent);font-weight:800;margin-top:4px">${won(p.price)}</div>` : "";
   $("#modalBody").innerHTML = `
     <button class="close" id="modalClose">✕</button>
     <div class="head">
@@ -473,6 +501,9 @@ function openModal(p){
     <div class="notelist">${layerHTML}</div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
+  if (!p._img && API.enabled){
+    fetchImage(getEnTerm(p)).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
+  }
 }
 function closeModal(){ $("#modal").classList.remove("open"); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
@@ -480,7 +511,7 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeModal(); });
 
 // 카드 클릭 → 모달
 document.addEventListener("click", e=>{
-  const card = e.target.closest(".pcard"); if(!card) return;
+  const card = e.target.closest(".pcard, .fcard"); if(!card) return;
   const id = card.dataset.id;
   let p = PERFUMES.find(x=>x.id===id);
   if (!p && window.__apiCache) p = window.__apiCache[id];
@@ -499,5 +530,6 @@ function fillQuick(){
 }
 fillQuick();
 renderChips();
+renderFeatured();
 initBrands();
 pingAPI();

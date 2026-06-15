@@ -261,3 +261,174 @@ const PERFUMES = [
     top:["pinkpepper"], middle:["iris"], base:["musk","ambrette"],
     desc:"내 살냄새와 섞이는 듯한 친밀한 머스크" },
 ];
+
+/* === 추가 노트 (확장 DB에서 참조) === */
+Object.assign(NOTES, {
+  nutmeg:   { name:"넛맥(육두구)", family:"spicy",  emoji:"🌰", analogy:"따뜻하고 알싸한 향신료, 베이킹에 쓰는 그 향" },
+  bay:      { name:"베이(월계수)", family:"aromatic", emoji:"🌿", analogy:"향긋하고 쌉싸름한 월계수 잎" },
+  magnolia: { name:"매그놀리아", family:"floral", emoji:"🌸", analogy:"레몬빛이 도는 화사하고 청초한 흰 목련꽃" },
+  freesia:  { name:"프리지아", family:"floral", emoji:"🌷", analogy:"맑고 산뜻한 봄꽃, 비누처럼 깨끗한" },
+  gardenia: { name:"가드니아(치자)", family:"floral", emoji:"💮", analogy:"크리미하고 진한 하얀 치자꽃" },
+  lotus:    { name:"로터스(연꽃)", family:"floral", emoji:"🪷", analogy:"맑고 시원한, 물기 어린 연꽃" },
+});
+
+/* === 영문명 (RapidAPI 사진/검색 매칭용) === */
+const EN_NAMES = {
+  "jm-woodsage":"Jo Malone Wood Sage Sea Salt","jm-englishpear":"Jo Malone English Pear Freesia",
+  "jm-limebasil":"Jo Malone Lime Basil Mandarin","ll-santal33":"Le Labo Santal 33",
+  "ll-another13":"Le Labo Another 13","ll-rose31":"Le Labo Rose 31","dior-sauvage":"Dior Sauvage",
+  "dior-homme":"Dior Homme Intense","dior-jadore":"Dior Jadore","dior-missdior":"Dior Miss Dior",
+  "chanel-bleu":"Bleu de Chanel","chanel-coco":"Chanel Coco Mademoiselle","chanel-chance":"Chanel Chance Eau Tendre",
+  "tf-oud":"Tom Ford Oud Wood","tf-lostcherry":"Tom Ford Lost Cherry","tf-tobacco":"Tom Ford Tobacco Vanille",
+  "tf-neroli":"Tom Ford Neroli Portofino","mm-jazz":"Maison Margiela Replica Jazz Club",
+  "mm-beach":"Maison Margiela Replica Beach Walk","mm-fireplace":"Maison Margiela Replica By the Fireplace",
+  "byredo-gypsy":"Byredo Gypsy Water","byredo-mojave":"Byredo Mojave Ghost","byredo-blanche":"Byredo Blanche",
+  "diptyque-philo":"Diptyque Philosykos","diptyque-tam":"Diptyque Tam Dao","diptyque-orpheon":"Diptyque Orpheon",
+  "ysl-libre":"Yves Saint Laurent Libre","ysl-myslf":"Yves Saint Laurent MYSLF","creed-aventus":"Creed Aventus",
+  "creed-silver":"Creed Silver Mountain Water","pen-halfeti":"Penhaligons Halfeti","acqua-profumo":"Acqua di Parma Colonia",
+  "versace-eros":"Versace Eros","ckone":"Calvin Klein CK One","narciso-poudree":"Narciso Rodriguez For Her Poudree",
+  "mfk-baccarat":"Baccarat Rouge 540","glossier-you":"Glossier You",
+};
+
+/* === 확장 향수 DB === */
+PERFUMES.push(
+  // 바이 킬리안
+  { id:"kilian-gggb", brand:"바이 킬리안", name:"굿 걸 곤 배드", en:"By Kilian Good Girl Gone Bad", gender:"여성", price:330000, top:["peach"], middle:["tuberose","jasmine","rose"], base:["cedar","musk"], desc:"관능적인 하얀 꽃들의 우아한 향" },
+  { id:"kilian-angels", brand:"바이 킬리안", name:"엔젤스 셰어", en:"By Kilian Angels Share", gender:"유니섹스", price:390000, top:["cinnamon"], middle:["rum","vanilla","tonka"], base:["sandalwood","oakmoss"], desc:"코냑과 바닐라의 따뜻하고 달콤한 향" },
+  { id:"kilian-love", brand:"바이 킬리안", name:"러브 돈 비 샤이", en:"By Kilian Love Dont Be Shy", gender:"여성", price:330000, top:["bergamot","orangeblossom"], middle:["honey"], base:["vanilla","caramel","musk"], desc:"마시멜로 같은 달콤하고 포근한 향" },
+  { id:"kilian-blackphantom", brand:"바이 킬리안", name:"블랙 팬텀", en:"By Kilian Black Phantom", gender:"유니섹스", price:390000, top:["coffee"], middle:["rum","almond"], base:["caramel","sandalwood"], desc:"커피·럼·카라멜의 해적 보물 같은 향" },
+  { id:"kilian-rolling", brand:"바이 킬리안", name:"롤링 인 러브", en:"By Kilian Rolling in Love", gender:"여성", price:330000, top:["almond"], middle:["tuberose","iris"], base:["musk","sandalwood"], desc:"보송한 아몬드와 파우더리한 흰 꽃" },
+
+  // 크리드
+  { id:"creed-git", brand:"크리드", name:"그린 아이리쉬 트위드", en:"Creed Green Irish Tweed", gender:"남성", price:420000, top:["lemon","violet"], middle:["iris","violet"], base:["sandalwood","ambergris"], desc:"클래식 그린·플로럴 남성향의 정석" },
+  { id:"creed-viking", brand:"크리드", name:"바이킹", en:"Creed Viking", gender:"남성", price:440000, top:["bergamot","pepper"], middle:["rose","sandalwood"], base:["vetiver","patchouli"], desc:"강인하고 스파이시한 우디" },
+
+  // 톰 포드
+  { id:"tf-blackorchid", brand:"톰 포드", name:"블랙 오키드", en:"Tom Ford Black Orchid", gender:"유니섹스", price:230000, top:["blackcurrant"], middle:["ylang","jasmine"], base:["patchouli","vanilla","incense"], desc:"다크하고 관능적인 시그니처 오리엔탈" },
+  { id:"tf-soleil", brand:"톰 포드", name:"솔레이 블랑", en:"Tom Ford Soleil Blanc", gender:"유니섹스", price:330000, top:["bergamot","cardamom"], middle:["tuberose","ylang"], base:["coconut","amber","tonka"], desc:"햇살 가득한 휴양지의 코코넛 플로럴" },
+  { id:"tf-bitterpeach", brand:"톰 포드", name:"비터 피치", en:"Tom Ford Bitter Peach", gender:"유니섹스", price:430000, top:["peach","orange"], middle:["rum","cardamom"], base:["vanilla","sandalwood"], desc:"농익은 복숭아의 진하고 달콤한 향" },
+  { id:"tf-fabulous", brand:"톰 포드", name:"퍼킹 패뷸러스", en:"Tom Ford Fucking Fabulous", gender:"유니섹스", price:480000, top:["lavender"], middle:["almond","leather"], base:["vanilla","tonka","leather"], desc:"가죽과 아몬드의 시크한 향" },
+
+  // 디올
+  { id:"dior-elixir", brand:"디올", name:"쏘바쥬 엘릭서", en:"Dior Sauvage Elixir", gender:"남성", price:230000, top:["cinnamon","cardamom"], middle:["lavender"], base:["sandalwood","patchouli","amber"], desc:"농축된 스파이시·우디, 강한 잔향" },
+  { id:"dior-bloomingbouquet", brand:"디올", name:"미스 디올 블루밍 부케", en:"Dior Miss Dior Blooming Bouquet", gender:"여성", price:170000, top:["mandarin"], middle:["peony","rose","peach"], base:["whitemusk"], desc:"부드럽고 화사한 봄꽃 부케" },
+  { id:"dior-hypnotic", brand:"디올", name:"힙노틱 푸아종", en:"Dior Hypnotic Poison", gender:"여성", price:160000, top:["almond","coconut"], middle:["jasmine"], base:["vanilla","musk"], desc:"치명적으로 달콤한 아몬드·바닐라" },
+  { id:"dior-fahrenheit", brand:"디올", name:"파렌하이트", en:"Dior Fahrenheit", gender:"남성", price:150000, top:["mandarin"], middle:["violet","nutmeg"], base:["leather","vetiver"], desc:"제비꽃과 가죽의 독특한 시그니처" },
+
+  // 샤넬
+  { id:"chanel-no5", brand:"샤넬", name:"넘버 5 EDP", en:"Chanel No 5", gender:"여성", price:230000, top:["lemon","ylang"], middle:["rose","jasmine"], base:["sandalwood","vanilla","musk"], desc:"세상에서 가장 유명한 알데하이드 플로럴" },
+  { id:"chanel-cocnoir", brand:"샤넬", name:"코코 누아", en:"Chanel Coco Noir", gender:"여성", price:215000, top:["grapefruit"], middle:["rose","jasmine"], base:["patchouli","sandalwood","vanilla"], desc:"신비롭고 우아한 다크 오리엔탈" },
+  { id:"chanel-alluresport", brand:"샤넬", name:"알뤼르 옴므 스포츠", en:"Chanel Allure Homme Sport", gender:"남성", price:175000, top:["orange","marine"], middle:["pepper","cedar"], base:["tonka","vetiver"], desc:"청량하고 깔끔한 데일리 남성향" },
+  { id:"chanel-gabrielle", brand:"샤넬", name:"가브리엘", en:"Chanel Gabrielle", gender:"여성", price:215000, top:["grapefruit"], middle:["orangeblossom","jasmine","tuberose"], base:["sandalwood","musk"], desc:"빛나는 하얀 꽃다발" },
+
+  // 입생로랑
+  { id:"ysl-blackopium", brand:"입생로랑", name:"블랙 오피움", en:"Yves Saint Laurent Black Opium", gender:"여성", price:170000, top:["pinkpepper"], middle:["coffee","jasmine"], base:["vanilla","patchouli"], desc:"커피와 바닐라의 중독적인 향" },
+  { id:"ysl-monparis", brand:"입생로랑", name:"몬 파리", en:"Yves Saint Laurent Mon Paris", gender:"여성", price:170000, top:["raspberry"], middle:["peony","jasmine"], base:["patchouli","whitemusk"], desc:"달콤한 베리와 파출리의 사랑스러운 향" },
+  { id:"ysl-y", brand:"입생로랑", name:"와이 EDP", en:"Yves Saint Laurent Y EDP", gender:"남성", price:170000, top:["apple","ginger"], middle:["sage","geranium"], base:["amber","tonka"], desc:"상쾌함과 우디함의 모던 남성향" },
+
+  // 구찌
+  { id:"gucci-bloom", brand:"구찌", name:"블룸", en:"Gucci Bloom", gender:"여성", price:160000, top:["greenleaves"], middle:["tuberose","jasmine"], base:["iris"], desc:"흐드러진 흰 꽃밭 같은 진한 플로럴" },
+  { id:"gucci-guilty", brand:"구찌", name:"길티 뿌르 옴므", en:"Gucci Guilty Pour Homme", gender:"남성", price:150000, top:["lemon","pinkpepper"], middle:["lavender","orangeblossom"], base:["patchouli","cedar"], desc:"라벤더와 파출리의 관능적 남성향" },
+  { id:"gucci-flora", brand:"구찌", name:"플로라 고저스 가드니아", en:"Gucci Flora Gorgeous Gardenia", gender:"여성", price:150000, top:["pear"], middle:["jasmine","peony"], base:["patchouli","musk"], desc:"달콤한 배와 가드니아의 사랑스러움" },
+
+  // 프라다
+  { id:"prada-carbon", brand:"프라다", name:"루나 로사 카본", en:"Prada Luna Rossa Carbon", gender:"남성", price:140000, top:["bergamot","pepper"], middle:["lavender"], base:["amber","patchouli"], desc:"메탈릭하고 깔끔한 인기 남성향" },
+  { id:"prada-candy", brand:"프라다", name:"캔디", en:"Prada Candy", gender:"여성", price:140000, top:["caramel"], middle:["honey"], base:["vanilla","musk","benzoin"], desc:"카라멜처럼 달콤한 구르망" },
+  { id:"prada-lhomme", brand:"프라다", name:"롬므", en:"Prada LHomme", gender:"남성", price:150000, top:["orangeblossom"], middle:["iris","pepper"], base:["amber","cedar","patchouli"], desc:"파우더리하고 깨끗한 세련된 남성향" },
+
+  // 베르사체
+  { id:"versace-dylanblue", brand:"베르사체", name:"딜런 블루", en:"Versace Dylan Blue", gender:"남성", price:110000, top:["bergamot","grapefruit"], middle:["fig","pepper"], base:["amber","patchouli"], desc:"청량하면서 묵직한 인기 남성향" },
+  { id:"versace-brightcrystal", brand:"베르사체", name:"브라이트 크리스탈", en:"Versace Bright Crystal", gender:"여성", price:95000, top:["grapefruit","peach"], middle:["peony","magnolia"], base:["musk","amber"], desc:"상큼하고 화사한 데일리 여성향" },
+
+  // 파코라반
+  { id:"paco-1million", brand:"파코라반", name:"원 밀리언", en:"Paco Rabanne 1 Million", gender:"남성", price:120000, top:["grapefruit","mint"], middle:["cinnamon","rose"], base:["leather","amber"], desc:"금괴 보틀, 달콤스파이시한 향" },
+  { id:"paco-invictus", brand:"파코라반", name:"인빅터스", en:"Paco Rabanne Invictus", gender:"남성", price:120000, top:["grapefruit","marine"], middle:["bay","jasmine"], base:["guaiac","ambergris"], desc:"상쾌한 아쿠아틱 우디" },
+  { id:"paco-ladymillion", brand:"파코라반", name:"레이디 밀리언", en:"Paco Rabanne Lady Million", gender:"여성", price:120000, top:["orange","raspberry"], middle:["orangeblossom","jasmine"], base:["honey","patchouli"], desc:"화려하고 달콤한 여성향" },
+
+  // 메종 마르지엘라 (레플리카)
+  { id:"mm-lazy", brand:"메종 마르지엘라", name:"레플리카 레이지 선데이 모닝", en:"Maison Margiela Replica Lazy Sunday Morning", gender:"유니섹스", price:185000, top:["pear"], middle:["lily","rose"], base:["musk","iris"], desc:"갓 세탁한 시트와 나른한 아침" },
+  { id:"mm-coffee", brand:"메종 마르지엘라", name:"레플리카 커피 브레이크", en:"Maison Margiela Replica Coffee Break", gender:"유니섹스", price:185000, top:["coffee","cardamom"], middle:["almond"], base:["vanilla","musk"], desc:"카페에서 마시는 따뜻한 라떼" },
+
+  // 바이레도
+  { id:"byredo-bal", brand:"바이레도", name:"발 다프리크", en:"Byredo Bal dAfrique", gender:"유니섹스", price:280000, top:["bergamot","lemon"], middle:["violet","jasmine"], base:["vetiver","cedar","musk"], desc:"자유로운 파리·아프리카의 무드" },
+  { id:"byredo-rose", brand:"바이레도", name:"로즈 오브 노 맨스 랜드", en:"Byredo Rose of No Mans Land", gender:"유니섹스", price:280000, top:["pinkpepper","raspberry"], middle:["rose"], base:["amber","musk"], desc:"투명하고 섬세한 장미" },
+
+  // 딥디크
+  { id:"diptyque-doson", brand:"딥디크", name:"도손", en:"Diptyque Do Son", gender:"여성", price:215000, top:["orangeblossom"], middle:["tuberose"], base:["musk","benzoin"], desc:"바닷바람에 실린 튜베로즈" },
+  { id:"diptyque-eaurose", brand:"딥디크", name:"오 로즈", en:"Diptyque Eau Rose", gender:"여성", price:215000, top:["lychee"], middle:["rose","peony"], base:["musk"], desc:"싱그럽고 발랄한 장미" },
+
+  // 르 라보
+  { id:"ll-bergamote22", brand:"르 라보", name:"베르가못 22", en:"Le Labo Bergamote 22", gender:"유니섹스", price:285000, top:["bergamot","grapefruit"], middle:["orangeblossom"], base:["amber","musk","vetiver"], desc:"상큼함을 머스크로 감싼 시트러스" },
+  { id:"ll-thenoir29", brand:"르 라보", name:"더 누아 29", en:"Le Labo The Noir 29", gender:"유니섹스", price:285000, top:["tea","fig"], middle:["tobacco"], base:["vetiver","cedar"], desc:"홍차와 무화과의 쌉싸름한 우디" },
+
+  // 조 말론
+  { id:"jm-peony", brand:"조 말론", name:"피오니 앤 블러쉬 스웨이드", en:"Jo Malone Peony Blush Suede", gender:"여성", price:198000, top:["apple"], middle:["peony","rose","jasmine"], base:["leather"], desc:"풍성한 작약과 부드러운 스웨이드" },
+  { id:"jm-bluebell", brand:"조 말론", name:"와일드 블루벨", en:"Jo Malone Wild Bluebell", gender:"여성", price:198000, top:["lychee"], middle:["lily","jasmine"], base:["musk"], desc:"청초하고 싱그러운 블루벨 꽃" },
+  { id:"jm-blackberry", brand:"조 말론", name:"블랙베리 앤 베이", en:"Jo Malone Blackberry Bay", gender:"유니섹스", price:198000, top:["blackcurrant","grapefruit"], middle:["greenleaves"], base:["cedar","patchouli"], desc:"잘 익은 블랙베리와 월계수 잎" },
+
+  // 메종 프란시스 커정
+  { id:"mfk-grandsoir", brand:"메종 프란시스 커정", name:"그랑 수아", en:"Maison Francis Kurkdjian Grand Soir", gender:"유니섹스", price:380000, top:["orangeblossom"], middle:["benzoin","amber"], base:["vanilla","tonka","labdanum"], desc:"파리의 밤 같은 따뜻한 앰버 바닐라" },
+  { id:"mfk-aqua", brand:"메종 프란시스 커정", name:"아쿠아 유니버살리스", en:"Maison Francis Kurkdjian Aqua Universalis", gender:"유니섹스", price:330000, top:["bergamot","lemon"], middle:["lily"], base:["musk"], desc:"갓 세탁한 듯 깨끗하고 맑은 향" },
+
+  // 퍼퓸 드 말리
+  { id:"pdm-layton", brand:"퍼퓸 드 말리", name:"레이튼", en:"Parfums de Marly Layton", gender:"유니섹스", price:330000, top:["apple","bergamot"], middle:["lavender","geranium","violet"], base:["vanilla","sandalwood"], desc:"사과와 바닐라의 우아한 만능향" },
+  { id:"pdm-delina", brand:"퍼퓸 드 말리", name:"델리나", en:"Parfums de Marly Delina", gender:"여성", price:330000, top:["lychee"], middle:["rose","peony"], base:["vanilla","musk"], desc:"리치와 장미의 화사한 여성향" },
+  { id:"pdm-herod", brand:"퍼퓸 드 말리", name:"헤로드", en:"Parfums de Marly Herod", gender:"남성", price:330000, top:["cinnamon","pepper"], middle:["tobacco"], base:["vanilla","vetiver"], desc:"바닐라와 담뱃잎의 따뜻한 남성향" },
+
+  // 이니시오
+  { id:"initio-oudgreat", brand:"이니시오", name:"우드 포 그레이트니스", en:"Initio Oud for Greatness", gender:"유니섹스", price:430000, top:["saffron"], middle:["oud"], base:["patchouli","musk"], desc:"사프란과 오우드의 강렬한 존재감" },
+  { id:"initio-sideeffect", brand:"이니시오", name:"사이드 이펙트", en:"Initio Side Effect", gender:"유니섹스", price:430000, top:["cinnamon"], middle:["rum","tobacco"], base:["vanilla"], desc:"위스키 바 같은 달콤스파이시" },
+
+  // 제르조프
+  { id:"xerjoff-naxos", brand:"제르조프", name:"낙소스", en:"Xerjoff Naxos", gender:"유니섹스", price:430000, top:["bergamot","lavender"], middle:["honey","cinnamon"], base:["tobacco","vanilla","tonka"], desc:"꿀과 담뱃잎의 럭셔리 구르망" },
+  { id:"xerjoff-erbapura", brand:"제르조프", name:"에르바 푸라", en:"Xerjoff Erba Pura", gender:"유니섹스", price:380000, top:["orange","lemon"], middle:["peach"], base:["amber","musk","vanilla"], desc:"상큼한 과일과 앰버의 만능향" },
+
+  // 뮈글러
+  { id:"mugler-angel", brand:"티에리 뮈글러", name:"엔젤", en:"Mugler Angel", gender:"여성", price:140000, top:["bergamot"], middle:["honey","peach"], base:["patchouli","vanilla","chocolate"], desc:"파출리와 초콜릿의 강렬한 구르망" },
+  { id:"mugler-alien", brand:"티에리 뮈글러", name:"에이리언", en:"Mugler Alien", gender:"여성", price:140000, top:["jasmine"], middle:["jasmine"], base:["amber","cedar"], desc:"신비로운 자스민과 앰버" },
+
+  // 랑콤
+  { id:"lancome-lveb", brand:"랑콤", name:"라 비 에 벨", en:"Lancome La Vie Est Belle", gender:"여성", price:150000, top:["blackcurrant","pear"], middle:["iris","jasmine","orangeblossom"], base:["vanilla","patchouli","tonka"], desc:"아이리스와 프랄린의 달콤한 행복" },
+  { id:"lancome-idole", brand:"랑콤", name:"이돌", en:"Lancome Idole", gender:"여성", price:140000, top:["pear"], middle:["rose","jasmine"], base:["musk","vanilla"], desc:"깨끗하고 모던한 장미 머스크" },
+
+  // 캐롤리나 헤레라
+  { id:"ch-goodgirl", brand:"캐롤리나 헤레라", name:"굿 걸", en:"Carolina Herrera Good Girl", gender:"여성", price:150000, top:["almond","coffee"], middle:["tuberose","jasmine"], base:["tonka","cacao","vanilla"], desc:"하이힐 보틀, 달콤하고 관능적인 향" },
+
+  // 빅터앤롤프
+  { id:"vr-flowerbomb", brand:"빅터앤롤프", name:"플라워밤", en:"Viktor Rolf Flowerbomb", gender:"여성", price:170000, top:["tea","bergamot"], middle:["jasmine","rose","orangeblossom"], base:["patchouli","vanilla","musk"], desc:"폭발하는 듯한 풍성한 꽃향" },
+  { id:"vr-spicebomb", brand:"빅터앤롤프", name:"스파이스밤", en:"Viktor Rolf Spicebomb", gender:"남성", price:160000, top:["bergamot","pinkpepper"], middle:["cinnamon","saffron"], base:["tobacco","leather"], desc:"수류탄 보틀, 따뜻한 스파이스 폭발" },
+
+  // 지방시
+  { id:"givenchy-linterdit", brand:"지방시", name:"랑떼르디", en:"Givenchy LInterdit", gender:"여성", price:150000, top:["orangeblossom"], middle:["tuberose","jasmine"], base:["patchouli","vetiver","amber"], desc:"하얀 꽃과 다크한 베이스의 대비" },
+  { id:"givenchy-gentleman", brand:"지방시", name:"젠틀맨 EDP", en:"Givenchy Gentleman", gender:"남성", price:150000, top:["pear","lavender"], middle:["iris"], base:["leather","patchouli"], desc:"아이리스와 가죽의 세련된 신사" },
+
+  // 에르메스
+  { id:"hermes-terre", brand:"에르메스", name:"테르 데르메스", en:"Hermes Terre dHermes", gender:"남성", price:160000, top:["orange","grapefruit","pepper"], middle:["geranium"], base:["vetiver","cedar","benzoin"], desc:"흙과 시트러스, 베티버의 대지향" },
+  { id:"hermes-twilly", brand:"에르메스", name:"트윌리", en:"Hermes Twilly", gender:"여성", price:160000, top:["ginger"], middle:["tuberose","orangeblossom"], base:["sandalwood"], desc:"생강과 튜베로즈의 발랄한 향" },
+
+  // 조르지오 아르마니
+  { id:"armani-adgprofumo", brand:"조르지오 아르마니", name:"아쿠아 디 지오 프로푸모", en:"Giorgio Armani Acqua di Gio Profumo", gender:"남성", price:160000, top:["bergamot","marine"], middle:["sage","geranium"], base:["patchouli","incense"], desc:"바다와 인센스의 깊은 아쿠아틱" },
+  { id:"armani-si", brand:"조르지오 아르마니", name:"시", en:"Giorgio Armani Si", gender:"여성", price:150000, top:["blackcurrant"], middle:["rose","freesia"], base:["vanilla","patchouli","musk"], desc:"블랙커런트와 머스크의 시크한 향" },
+  { id:"armani-myway", brand:"조르지오 아르마니", name:"마이 웨이", en:"Giorgio Armani My Way", gender:"여성", price:150000, top:["bergamot","orangeblossom"], middle:["tuberose","jasmine"], base:["vanilla","musk","cedar"], desc:"오렌지 블라썸과 튜베로즈의 여정" },
+
+  // 끌로에
+  { id:"chloe-edp", brand:"끌로에", name:"끌로에 EDP", en:"Chloe Eau de Parfum", gender:"여성", price:140000, top:["lychee"], middle:["peony","rose","freesia"], base:["amber","cedar"], desc:"장미를 중심으로 한 우아한 여성향" },
+  { id:"chloe-nomade", brand:"끌로에", name:"노마드", en:"Chloe Nomade", gender:"여성", price:140000, top:["peach"], middle:["freesia","jasmine"], base:["oakmoss","patchouli"], desc:"자두와 오크모스의 자유로운 향" },
+
+  // 마크 제이콥스
+  { id:"mj-daisy", brand:"마크 제이콥스", name:"데이지", en:"Marc Jacobs Daisy", gender:"여성", price:120000, top:["raspberry","violet"], middle:["jasmine","gardenia"], base:["musk","cedar"], desc:"상큼하고 청순한 데일리 플로럴" },
+
+  // 캘빈클라인
+  { id:"ck-eternity", brand:"캘빈클라인", name:"이터니티", en:"Calvin Klein Eternity", gender:"여성", price:80000, top:["mandarin","freesia"], middle:["lily","jasmine","rose"], base:["sandalwood","amber","musk"], desc:"클래식하고 깨끗한 플로럴" },
+
+  // 휴고 보스
+  { id:"boss-bottled", brand:"휴고 보스", name:"보스 보틀드", en:"Hugo Boss Bottled", gender:"남성", price:90000, top:["apple"], middle:["cinnamon","geranium"], base:["vanilla","sandalwood","cedar"], desc:"사과와 시나몬의 깔끔한 데일리 남성향" },
+
+  // 몽블랑
+  { id:"mont-explorer", brand:"몽블랑", name:"익스플로러", en:"Montblanc Explorer", gender:"남성", price:90000, top:["bergamot","pinkpepper"], middle:["vetiver"], base:["patchouli","leather","amber"], desc:"가성비 좋은 우디 가죽향" },
+  { id:"mont-legend", brand:"몽블랑", name:"레전드", en:"Montblanc Legend", gender:"남성", price:85000, top:["lavender","pineapple","apple"], middle:["rose","geranium"], base:["oakmoss","sandalwood"], desc:"상쾌한 프루티 푸제르" },
+
+  // 불가리
+  { id:"bvlgari-maninblack", brand:"불가리", name:"맨 인 블랙", en:"Bvlgari Man in Black", gender:"남성", price:120000, top:["rum"], middle:["tuberose","leather"], base:["tonka","benzoin","amber"], desc:"럼과 가죽의 강렬한 남성향" },
+  { id:"bvlgari-omnia", brand:"불가리", name:"옴니아 크리스탈린", en:"Bvlgari Omnia Crystalline", gender:"여성", price:110000, top:["tea"], middle:["lily","lotus"], base:["musk","sandalwood","cedar"], desc:"대나무와 연꽃의 맑고 투명한 향" },
+);
