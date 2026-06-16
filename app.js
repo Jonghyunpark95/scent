@@ -660,13 +660,15 @@ function openModal(p){
     ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>
-    <div class="shopbox" id="shopBox"></div>`;
+    <div class="shopbox" id="shopBox"></div>
+    <div class="reviewbox" id="reviewBox"></div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
   if (!p._img && API.enabled){
     fetchImage(getEnTerm(p)).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }
   loadShop(p);
+  if (window.renderReviews) window.renderReviews(p);
 }
 function closeModal(){ $("#modal").classList.remove("open"); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });

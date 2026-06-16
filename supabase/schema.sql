@@ -1,0 +1,128 @@
+-- =========================================================================
+-- Scentpedia 커뮤니티 스키마
+-- Supabase 대시보드 → SQL Editor → 새 쿼리에 붙여넣고 [Run] 하세요. (한 번만)
+-- =========================================================================
+
+-- 1) 프로필 (닉네임)
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  nickname text,
+  created_at timestamptz default now()
+);
+alter table public.profiles enable row level security;
+drop policy if exists "profiles_read" on public.profiles;
+create policy "profiles_read"   on public.profiles for select using (true);
+drop policy if exists "profiles_upsert" on public.profiles;
+create policy "profiles_upsert" on public.profiles for insert with check (auth.uid() = id);
+drop policy if exists "profiles_update" on public.profiles;
+create policy "profiles_update" on public.profiles for update using (auth.uid() = id);
+
+-- 가입 시 프로필 자동 생성 (닉네임 = 메타데이터 or 이메일 앞부분)
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles(id, nickname)
+  values (new.id, coalesce(new.raw_user_meta_data->>'nickname', split_part(new.email,'@',1)))
+  on conflict (id) do nothing;
+  return new;
+end; $$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users for each row execute function public.handle_new_user();
+
+-- 2) 구매평 · 별점
+create table if not exists public.reviews (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nickname text,
+  perfume_key text not null,
+  perfume_name text,
+  brand text,
+  rating int not null check (rating between 1 and 5),
+  body text,
+  created_at timestamptz default now()
+);
+alter table public.reviews enable row level security;
+drop policy if exists "reviews_read" on public.reviews;
+create policy "reviews_read"   on public.reviews for select using (true);
+drop policy if exists "reviews_insert" on public.reviews;
+create policy "reviews_insert" on public.reviews for insert with check (auth.uid() = user_id);
+drop policy if exists "reviews_update" on public.reviews;
+create policy "reviews_update" on public.reviews for update using (auth.uid() = user_id);
+drop policy if exists "reviews_delete" on public.reviews;
+create policy "reviews_delete" on public.reviews for delete using (auth.uid() = user_id);
+create index if not exists reviews_perfume_idx on public.reviews(perfume_key);
+
+-- 3) 게시판 (자유게시판 board='free' / 컬렉션 공유 board='collection')
+create table if not exists public.posts (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nickname text,
+  board text not null default 'free',
+  title text not null,
+  body text,
+  created_at timestamptz default now()
+);
+alter table public.posts enable row level security;
+drop policy if exists "posts_read" on public.posts;
+create policy "posts_read"   on public.posts for select using (true);
+drop policy if exists "posts_insert" on public.posts;
+create policy "posts_insert" on public.posts for insert with check (auth.uid() = user_id);
+drop policy if exists "posts_update" on public.posts;
+create policy "posts_update" on public.posts for update using (auth.uid() = user_id);
+drop policy if exists "posts_delete" on public.posts;
+create policy "posts_delete" on public.posts for delete using (auth.uid() = user_id);
+
+-- 4) 댓글
+create table if not exists public.comments (
+  id bigint generated always as identity primary key,
+  post_id bigint not null references public.posts(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nickname text,
+  body text not null,
+  created_at timestamptz default now()
+);
+alter table public.comments enable row level security;
+drop policy if exists "comments_read" on public.comments;
+create policy "comments_read"   on public.comments for select using (true);
+drop policy if exists "comments_insert" on public.comments;
+create policy "comments_insert" on public.comments for insert with check (auth.uid() = user_id);
+drop policy if exists "comments_delete" on public.comments;
+create policy "comments_delete" on public.comments for delete using (auth.uid() = user_id);
+
+-- 5) 향수 캘린더 (날짜별 사용 기록)
+create table if not exists public.diary (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  nickname text,
+  worn_on date not null,
+  perfume_key text,
+  perfume_name text,
+  brand text,
+  memo text,
+  is_public boolean default true,
+  created_at timestamptz default now()
+);
+alter table public.diary enable row level security;
+drop policy if exists "diary_read" on public.diary;
+create policy "diary_read"   on public.diary for select using (is_public or auth.uid() = user_id);
+drop policy if exists "diary_insert" on public.diary;
+create policy "diary_insert" on public.diary for insert with check (auth.uid() = user_id);
+drop policy if exists "diary_update" on public.diary;
+create policy "diary_update" on public.diary for update using (auth.uid() = user_id);
+drop policy if exists "diary_delete" on public.diary;
+create policy "diary_delete" on public.diary for delete using (auth.uid() = user_id);
+
+-- 6) 가격 추이 (매일 크론이 service_role로 기록 → 읽기는 누구나)
+create table if not exists public.price_history (
+  id bigint generated always as identity primary key,
+  perfume_key text not null,
+  price int not null,
+  collected_on date not null,
+  created_at timestamptz default now(),
+  unique (perfume_key, collected_on)
+);
+alter table public.price_history enable row level security;
+drop policy if exists "price_read" on public.price_history;
+create policy "price_read" on public.price_history for select using (true);
+-- 쓰기는 service_role(크론)만 → RLS 우회하므로 insert 정책 불필요

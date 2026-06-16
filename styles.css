@@ -246,6 +246,38 @@ footer .logo{justify-content:center;color:var(--ink)}
 footer a{color:var(--accent);text-decoration:none}
 .disc{font-size:11.5px;color:#a29e95;max-width:640px;margin:14px auto 0;line-height:1.7}
 
+/* 로그인 상태 (헤더) */
+.auth-slot{margin-left:14px;display:flex;align-items:center;gap:8px}
+@media(max-width:560px){.auth-slot{margin-left:auto}}
+.auth-nick{font-size:13px;font-weight:700;color:var(--ink)}
+.auth-btn{font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;border:0;border-radius:999px;padding:8px 14px;background:var(--ink);color:#fff}
+.auth-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.auth-btn:hover{opacity:.9}
+
+/* 인증 모달 폼 */
+.auth-tabs{display:flex;gap:8px;margin-bottom:16px}
+.auth-tabs button{flex:1;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;padding:10px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--muted)}
+.auth-tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.auth-in{width:100%;padding:13px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:var(--cream);outline:none}
+.auth-in:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.auth-msg{margin-top:12px;font-size:13px;color:var(--accent);line-height:1.5;text-align:center}
+
+/* 구매평 */
+.reviewbox{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.rv-h{font-weight:800;font-size:15px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.rv-avg{font-size:13px;font-weight:800;color:#fff;background:var(--accent);padding:3px 10px;border-radius:999px}
+.rv-list{display:grid;gap:10px}
+.rv-item{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.rv-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rv-top b{font-size:13.5px}
+.rv-stars{color:#f5a623;font-size:13px;letter-spacing:1px}
+.rv-body{font-size:13.5px;color:var(--ink-soft);margin-top:6px;line-height:1.5;white-space:pre-wrap}
+.rv-login{margin-top:14px;font-size:13.5px;color:var(--muted);text-align:center}
+.rv-login a{color:var(--accent);font-weight:700;text-decoration:none}
+.rv-write{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+.rv-stars-input{font-size:26px;color:#d9d3c8;cursor:pointer;letter-spacing:4px;margin-bottom:8px;user-select:none}
+.rv-stars-input span:hover{color:#f5a623}
+
 /* 소식 카드 */
 .news-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 @media(max-width:640px){.news-list{grid-template-columns:1fr}}
