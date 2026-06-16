@@ -272,13 +272,14 @@ window.renderPriceChart = async function(p){
   const tkey = "target:" + p.id;
   let target = parseInt(localStorage.getItem(tkey) || "", 10) || null;
   box.innerHTML = `<div class="pc-h">📈 시세 추이 <span class="pc-cur">현재 시세 ${won2(cur)}</span></div>
-    <div id="pcChart">${chartSVG(pts, target)}</div>
+    <div id="pcChart"></div>
     <div class="pc-target">🎯 내 목표가 <input id="pcInput" type="number" inputmode="numeric" placeholder="예: 250000" value="${target||""}"><button class="btn" id="pcSet">설정</button></div>
     <div class="pc-msg" id="pcMsg">${target?targetMsg(cur,target):"목표가를 정하면 시세선과 비교해드려요. 시세가 목표 아래로 내려오면 살 타이밍! 🛒"}</div>`;
+  mountChart(box.querySelector("#pcChart"), pts, target);
   box.querySelector("#pcSet").onclick = () => {
     const v = parseInt(box.querySelector("#pcInput").value, 10);
     if (v > 0){ localStorage.setItem(tkey, String(v)); target = v; } else { localStorage.removeItem(tkey); target = null; }
-    box.querySelector("#pcChart").innerHTML = chartSVG(pts, target);
+    mountChart(box.querySelector("#pcChart"), pts, target);
     box.querySelector("#pcMsg").innerHTML = target ? targetMsg(cur, target) : "목표가가 해제됐어요.";
   };
 };
@@ -295,9 +296,33 @@ function chartSVG(pts, target){
   const sx = i => pad + (pts.length <= 1 ? (W - 2*pad)/2 : i * (W - 2*pad) / (pts.length - 1));
   const sy = v => H - pad - (v - min) / (max - min) * (H - 2*pad);
   const line = pts.map((p,i)=>`${sx(i).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
-  const dots = pts.map((p,i)=>`<circle cx="${sx(i).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3" fill="#b14a5f"/>`).join("");
+  const dots = pts.map((p,i)=>{
+    const x=sx(i).toFixed(1), y=sy(p.y).toFixed(1);
+    const label = `${(p.x||"").slice(5)} · ${won2(p.y)}`;
+    return `<circle cx="${x}" cy="${y}" r="3.2" fill="#b14a5f"/>`
+         + `<circle class="pc-dot" cx="${x}" cy="${y}" r="14" fill="transparent" data-label="${esc2(label)}"/>`;
+  }).join("");
   const tline = target ? `<line x1="${pad}" y1="${sy(target).toFixed(1)}" x2="${W-pad}" y2="${sy(target).toFixed(1)}" stroke="#3fae6a" stroke-dasharray="5 4" stroke-width="1.5"/>` : "";
   return `<svg viewBox="0 0 ${W} ${H}" class="pc-svg" preserveAspectRatio="none">${pts.length>1?`<polyline points="${line}" fill="none" stroke="#b14a5f" stroke-width="2"/>`:""}${dots}${tline}</svg>`;
+}
+/* 차트를 컨테이너에 마운트하고 호버/탭 툴팁(날짜·금액) 부착 */
+function mountChart(container, pts, target){
+  if (!container) return;
+  container.style.position = "relative";
+  container.innerHTML = chartSVG(pts, target) + `<div class="pc-tip"></div>`;
+  const tip = container.querySelector(".pc-tip");
+  const show = dot => {
+    const r = dot.getBoundingClientRect(), cr = container.getBoundingClientRect();
+    tip.textContent = dot.getAttribute("data-label");
+    tip.style.left = (r.left - cr.left + r.width / 2) + "px";
+    tip.style.top  = (r.top - cr.top) + "px";
+    tip.classList.add("show");
+  };
+  container.querySelectorAll(".pc-dot").forEach(dot => {
+    dot.addEventListener("mouseenter", () => show(dot));
+    dot.addEventListener("click", () => show(dot));
+    dot.addEventListener("mouseleave", () => tip.classList.remove("show"));
+  });
 }
 
 /* =========================================================================
@@ -311,7 +336,7 @@ async function renderHomeChart(){
   const pts = data.map(d => ({ x: d.collected_on, y: d.price }));
   const cur = pts[pts.length - 1].y, first = pts[0].y;
   const diff = first ? Math.round((cur - first) / first * 100) : 0;
-  box.innerHTML = chartSVG(pts, null);
+  mountChart(box, pts, null);
   const msg = document.getElementById("homeChartMsg");
   if (msg) msg.innerHTML = `현재 시세 <b>${won2(cur)}</b> · 최근 ${pts.length}일 ${diff <= 0 ? `<b style="color:#3fae6a">${Math.abs(diff)}% 하락</b> 🔻 — 살 타이밍?` : `<b style="color:#c0392b">${diff}% 상승</b> 🔺`}`;
 }
