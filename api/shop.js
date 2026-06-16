@@ -39,8 +39,8 @@ export default async function handler(req, res) {
       .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
     const minPrice = parseInt(req.query.minPrice, 10) || 0;
-    // 시향지·샘플·공병 등 향수 본품이 아닌 잡상품 제외
-    const JUNK = /시향지|시향|샘플|공병|스티커|키링|뿌리개|소분|어토마이저|굿즈|쇼핑백|단추|증정/;
+    // 시향지·샘플·소분(데칸트)·15ml 이하 미니 등 본품이 아닌 잡상품 제외
+    const JUNK = /시향지|시향|샘플|공병|스티커|키링|뿌리개|굿즈|쇼핑백|단추|증정|소분|분할|데칸트|디[캔켄]트|어토마이저|미니어|바이알|vial|추출|(?:[^0-9]|^)(?:[1-9]|1[0-5])\s?ml(?![0-9])/i;
     const items = (j.items || [])
       .map(it => ({
         title: decode(it.title),

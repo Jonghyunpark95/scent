@@ -35,7 +35,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, reason: "not_configured" });
   }
   const today = new Date().toISOString().slice(0, 10);
-  const JUNK = /시향지|시향|샘플|공병|소분|어토마이저/;
+  // 시향지·샘플·소분(데칸트)·15ml 이하 미니 등 본품이 아닌 항목 제외
+  const JUNK = /시향지|시향|샘플|공병|소분|분할|데칸트|디[캔켄]트|어토마이저|미니어|바이알|vial|추출|(?:[^0-9]|^)(?:[1-9]|1[0-5])\s?ml(?![0-9])/i;
   let saved = 0;
 
   for (const t of TRACK) {
