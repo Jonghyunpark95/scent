@@ -518,32 +518,35 @@ function naverLinkBtn(q){
   return `<a class="buy-btn" href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}" target="_blank" rel="noopener nofollow sponsored">🛒 네이버 쇼핑에서 구매처·최저가 보기</a>`;
 }
 /* 모달 안에서 판매처/최저가 로딩 (네이버 + 쿠팡) */
+const SHOP_WARN = `<div class="shop-warn">💚 <b>Scentpedia는 정품 거래를 응원해요.</b><br>시세보다 지나치게 저렴한 향수는 <b>가품일 수 있어요.</b> 요즘 향수 가품이 정말 많으니, 정품 여부를 꼭 확인하세요!</div>`;
 async function loadShop(p){
   const box = $("#shopBox"); if (!box) return;
   const q = (p._api ? "" : p.brand + " ") + p.name;
-  // 1) 네이버 쇼핑
   if (!NAVER.enabled){
-    box.innerHTML = naverLinkBtn(q);
-  } else {
-    box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
-    const data = await naverFetch("search", { q, display: 10, sort: "sim", minPrice: 30000 });
-    if (!data || !data.items || !data.items.length){
-      box.innerHTML = naverLinkBtn(q);
-    } else {
-      const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
-      const top = priced.slice(0, 4);
-      const min = priced[0];
-      box.innerHTML = `
-        <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
-        <div class="shop-list">${top.map(i=>`
-          <a class="shop-row" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
-            <span class="mall">${esc(i.mall)}</span>
-            <span class="t">${esc(i.title)}</span>
-            <span class="p">${pf(i.price)}</span>
-          </a>`).join("")}</div>
-        ${naverLinkBtn(q)}`;
-    }
+    box.innerHTML = SHOP_WARN + naverLinkBtn(q);
+    return;
   }
+  box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
+  const data = await naverFetch("search", { q, display: 10, sort: "sim", minPrice: 30000 });
+  if (!data || !data.items || !data.items.length){
+    box.innerHTML = SHOP_WARN + naverLinkBtn(q);
+    return;
+  }
+  const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
+  const top = priced.slice(0, 5);
+  const min = priced[0];
+  const median = priced.length ? priced[Math.floor(priced.length/2)].price : 0;
+  const susp = i => median && i.price < median * 0.5;   // 시세 절반 미만 → 가품 의심
+  box.innerHTML = `
+    <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
+    <div class="shop-list">${top.map(i=>`
+      <a class="shop-row${susp(i)?" warn":""}" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
+        <span class="mall">${esc(i.mall)}</span>
+        <span class="t">${susp(i)?'<span class="warn-tag">가품 의심</span> ':''}${esc(i.title)}</span>
+        <span class="p">${pf(i.price)}</span>
+      </a>`).join("")}</div>
+    ${SHOP_WARN}
+    ${naverLinkBtn(q)}`;
 }
 
 /* =========================================================================
