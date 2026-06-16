@@ -46,9 +46,11 @@ export default async function handler(req, res) {
       const prices = (j.items || [])
         .map(it => ({ title: String(it.title || "").replace(/<[^>]+>/g, ""), price: parseInt(it.lprice, 10) || 0 }))
         .filter(it => it.price >= 30000 && !JUNK.test(it.title))
-        .map(it => it.price);
-      if (!prices.length) continue;
-      const min = Math.min(...prices);
+        .map(it => it.price)
+        .sort((a, b) => a - b);
+      if (prices.length < 3) continue;                    // 표본 너무 적으면 건너뜀
+      // 중앙값 = 가품/decant 이상치에 휘둘리지 않는 '정상 시세'
+      const median = prices[Math.floor(prices.length / 2)];
 
       const r = await fetch(`${SB}/rest/v1/price_history?on_conflict=perfume_key,collected_on`, {
         method: "POST",
@@ -56,7 +58,7 @@ export default async function handler(req, res) {
           apikey: SR, Authorization: "Bearer " + SR,
           "Content-Type": "application/json", Prefer: "resolution=merge-duplicates",
         },
-        body: JSON.stringify({ perfume_key: t.key, price: min, collected_on: today }),
+        body: JSON.stringify({ perfume_key: t.key, price: median, collected_on: today }),
       });
       if (r.ok) saved++;
     } catch (e) { /* 개별 실패는 건너뜀 */ }
