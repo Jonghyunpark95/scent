@@ -485,6 +485,82 @@ async function pingAPI(){
 }
 
 /* =========================================================================
+   네이버 쇼핑 (구매처·최저가·디퓨저) — /api/shop
+   ========================================================================= */
+const NAVER = { enabled: false };
+const pf = n => Number(n).toLocaleString("ko-KR") + "원";
+async function naverFetch(action, params){
+  try{
+    const qs = new URLSearchParams({ action, ...params }).toString();
+    const res = await fetch(`/api/shop?${qs}`);
+    if (!res.ok) throw new Error("shop " + res.status);
+    const json = await res.json();
+    if (json && json.ok === false) return null;
+    return json;
+  }catch(err){ return null; }
+}
+async function pingNaver(){
+  const d = await naverFetch("status", {});
+  NAVER.enabled = !!(d && d.configured);
+}
+function naverLinkBtn(q){
+  return `<a class="buy-btn" href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}" target="_blank" rel="noopener nofollow sponsored">🛒 네이버 쇼핑에서 구매처·최저가 보기</a>`;
+}
+/* 모달 안에서 판매처/최저가 로딩 */
+async function loadShop(p){
+  const box = $("#shopBox"); if (!box) return;
+  const q = (p._api ? "" : p.brand + " ") + p.name;
+  if (!NAVER.enabled){ box.innerHTML = naverLinkBtn(q); return; }
+  box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
+  const data = await naverFetch("search", { q, display: 10, sort: "sim" });
+  if (!data || !data.items || !data.items.length){ box.innerHTML = naverLinkBtn(q); return; }
+  const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
+  const top = priced.slice(0, 4);
+  const min = priced[0];
+  box.innerHTML = `
+    <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
+    <div class="shop-list">${top.map(i=>`
+      <a class="shop-row" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
+        <span class="mall">${esc(i.mall)}</span>
+        <span class="t">${esc(i.title)}</span>
+        <span class="p">${pf(i.price)}</span>
+      </a>`).join("")}</div>
+    ${naverLinkBtn(q)}`;
+}
+
+/* =========================================================================
+   디퓨저 (네이버 쇼핑 기반)
+   ========================================================================= */
+const DIFFUSER_BRANDS = ["딥디크","조말론","이솝","논픽션","산타마리아노벨라","록시땅","코코도르","르라보"];
+function dcard(it){
+  return `<a class="dcard" href="${esc(it.link)}" target="_blank" rel="noopener nofollow sponsored">
+    <div class="art">${it.image?`<img src="${esc(it.image)}" alt="${esc(it.title)}" loading="lazy" onerror="this.outerHTML=window.__ph()">`:window.__ph()}</div>
+    <div class="info"><div class="mall">${esc(it.mall)}</div><div class="name">${esc(it.title)}</div><div class="price">${pf(it.price)}</div></div>
+  </a>`;
+}
+function initDiffusers(){
+  const sec = $("#diffusers"); if (!sec) return;
+  if (!NAVER.enabled){ sec.style.display = "none"; return; }
+  sec.style.display = "";
+  const tabs = $("#diffTabs");
+  tabs.innerHTML = DIFFUSER_BRANDS.map((b,i)=>`<button class="${i===0?"on":""}" data-b="${esc(b)}">${esc(b)}</button>`).join("");
+  tabs.addEventListener("click", e=>{
+    const btn = e.target.closest("button"); if(!btn) return;
+    $$("#diffTabs button").forEach(x=>x.classList.toggle("on", x===btn));
+    loadDiffusers(btn.dataset.b);
+  });
+  loadDiffusers(DIFFUSER_BRANDS[0]);
+}
+async function loadDiffusers(brand){
+  const grid = $("#diffGrid");
+  grid.innerHTML = `<div class="empty-state"><span class="spinner"></span> ${esc(brand)} 디퓨저 불러오는 중…</div>`;
+  const data = await naverFetch("search", { q: brand + " 디퓨저", display: 12, sort: "sim" });
+  if (!data || !data.items || !data.items.length){ grid.innerHTML = `<div class="empty-state">${esc(brand)} 디퓨저를 찾지 못했어요.</div>`; return; }
+  if ($("#diffTabs button.on") && $("#diffTabs button.on").dataset.b !== brand) return;
+  grid.innerHTML = data.items.filter(i=>i.price>0).map(dcard).join("");
+}
+
+/* =========================================================================
    상세 모달
    ========================================================================= */
 function openModal(p){
@@ -514,12 +590,13 @@ function openModal(p){
     ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>
-    <a class="buy-btn" href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent((p._api?"":p.brand+" ")+p.name)}" target="_blank" rel="noopener">🛒 네이버 쇼핑에서 구매처·최저가 보기</a>`;
+    <div class="shopbox" id="shopBox"></div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
   if (!p._img && API.enabled){
     fetchImage(getEnTerm(p)).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }
+  loadShop(p);
 }
 function closeModal(){ $("#modal").classList.remove("open"); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
@@ -549,3 +626,4 @@ renderChips();
 renderFeatured();
 initBrands();
 pingAPI();
+pingNaver().then(initDiffusers);

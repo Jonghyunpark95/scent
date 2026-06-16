@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>향수 취향 찾기 · Scent Finder — 내 취향 향수 추천</title>
 <meta name="description" content="좋아하는 향수만 입력하면 내 취향(탑·미들·베이스)을 분석하고, 비슷한 향수와 예상 가격, 브랜드별 향수 모음, 샌달우드 같은 어려운 베이스향을 쉽게 비유해서 알려드려요.">
-<meta name="theme-color" content="#0e0a1f">
+<meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="https://scentpedia.co.kr/">
 <meta property="og:title" content="향수 취향 찾기 · Scent Finder">
 <meta property="og:description" content="좋아하는 향수를 입력하면 취향을 분석하고 향수를 추천해드려요. 베이스향도 쉽게 설명!">
@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=5">
+<link rel="stylesheet" href="styles.css?v=6">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -29,6 +29,7 @@
     <nav class="topnav">
       <a href="#start">취향 분석</a>
       <a href="#brands">브랜드별</a>
+      <a href="#diffusers">디퓨저</a>
       <a href="#encyclopedia">백과사전</a>
     </nav>
   </div>
@@ -132,6 +133,14 @@
     <div class="grid" id="brandGrid"></div>
   </section>
 
+  <!-- 디퓨저 (네이버 쇼핑) -->
+  <section id="diffusers" style="display:none">
+    <div class="sec-h"><span class="num">🪔 홈</span><h2>인기 디퓨저</h2>
+      <p>브랜드별 디퓨저 · 실시간 가격 · 눌러서 구매</p></div>
+    <div class="brand-tabs" id="diffTabs"></div>
+    <div class="grid" id="diffGrid"></div>
+  </section>
+
   <!-- 백과사전 -->
   <section id="encyclopedia">
     <div class="sec-h"><span class="num">백과사전</span><h2>향수 백과사전 검색</h2>
@@ -163,7 +172,7 @@
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="data.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
