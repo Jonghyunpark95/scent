@@ -38,14 +38,19 @@ export default async function handler(req, res) {
       .replace(/<[^>]+>/g, "")
       .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
       .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ");
-    const items = (j.items || []).map(it => ({
-      title: decode(it.title),
-      price: parseInt(it.lprice, 10) || 0,
-      mall: it.mallName || "",
-      link: it.link || "",
-      image: it.image || "",
-      brand: it.brand || it.maker || "",
-    }));
+    const minPrice = parseInt(req.query.minPrice, 10) || 0;
+    // 시향지·샘플·공병 등 향수 본품이 아닌 잡상품 제외
+    const JUNK = /시향지|시향|샘플|공병|스티커|키링|뿌리개|소분|어토마이저|굿즈|쇼핑백|단추|증정/;
+    const items = (j.items || [])
+      .map(it => ({
+        title: decode(it.title),
+        price: parseInt(it.lprice, 10) || 0,
+        mall: it.mallName || "",
+        link: it.link || "",
+        image: it.image || "",
+        brand: it.brand || it.maker || "",
+      }))
+      .filter(it => it.price >= minPrice && it.title && !JUNK.test(it.title));
     return res.status(200).json({ ok: true, total: j.total || items.length, items });
   } catch (err) {
     return res.status(200).json({ ok: false, reason: "fetch_error", message: String(err), items: [] });

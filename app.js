@@ -526,7 +526,7 @@ async function loadShop(p){
     box.innerHTML = naverLinkBtn(q);
   } else {
     box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
-    const data = await naverFetch("search", { q, display: 10, sort: "sim" });
+    const data = await naverFetch("search", { q, display: 10, sort: "sim", minPrice: 30000 });
     if (!data || !data.items || !data.items.length){
       box.innerHTML = naverLinkBtn(q);
     } else {
@@ -572,7 +572,7 @@ function initDiffusers(){
 async function loadDiffusers(brand){
   const grid = $("#diffGrid");
   grid.innerHTML = `<div class="empty-state"><span class="spinner"></span> ${esc(brand)} 디퓨저 불러오는 중…</div>`;
-  const data = await naverFetch("search", { q: brand + " 디퓨저", display: 12, sort: "sim" });
+  const data = await naverFetch("search", { q: brand + " 디퓨저", display: 12, sort: "sim", minPrice: 5000 });
   if (!data || !data.items || !data.items.length){ grid.innerHTML = `<div class="empty-state">${esc(brand)} 디퓨저를 찾지 못했어요.</div>`; return; }
   if ($("#diffTabs button.on") && $("#diffTabs button.on").dataset.b !== brand) return;
   grid.innerHTML = data.items.filter(i=>i.price>0).map(dcard).join("");
