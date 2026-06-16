@@ -41,7 +41,7 @@ export default async function handler(req, res) {
 
   for (const t of TRACK) {
     try {
-      const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(t.q)}&display=30&sort=asc`;
+      const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(t.q)}&display=40&sort=sim`;
       const j = await fetch(url, { headers: { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET } }).then(r => r.json());
       const prices = (j.items || [])
         .map(it => ({ title: String(it.title || "").replace(/<[^>]+>/g, ""), price: parseInt(it.lprice, 10) || 0 }))
