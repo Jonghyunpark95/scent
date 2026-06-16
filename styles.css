@@ -428,9 +428,20 @@ footer a{color:var(--accent);text-decoration:none}
 /* 상단바: 로고 뒤 여백이 나머지를 오른쪽으로 밀어 칩 유무와 무관하게 정렬 */
 .topbar .logo{margin-right:auto}
 .weather-chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--ink-soft);background:var(--cream);border:1px solid var(--line);padding:7px 13px;border-radius:999px;text-decoration:none;white-space:nowrap}
+.weather-chip{cursor:pointer}
 .weather-chip:hover{border-color:var(--accent);color:var(--accent)}
+.wc-caret{font-size:10px;opacity:.7}
 .topbar .auth-slot{margin-left:8px}
 @media(max-width:680px){.weather-chip{display:none!important}}
+
+/* 상단바 날씨 칩 → 지역 선택 드롭다운 */
+.weather-menu{position:fixed;z-index:200;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:8px;display:none;max-height:62vh;overflow:auto;min-width:152px}
+.weather-menu.open{display:block;animation:fade .15s ease}
+.wm-h{font-size:11px;font-weight:800;color:var(--muted);padding:6px 10px 8px;letter-spacing:.04em}
+.weather-menu .wm-item{display:block;width:100%;text-align:left;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-soft);background:none;border:0;border-radius:9px;padding:9px 12px;cursor:pointer}
+.weather-menu .wm-item:hover{background:var(--cream);color:var(--ink)}
+.weather-menu .wm-item.on{background:var(--accent-soft);color:var(--accent);font-weight:800}
+.weather-menu .wm-geo{border-top:1px solid var(--line-soft);margin-top:6px;color:var(--accent)}
 
 /* 날씨 지역 선택 */
 .region-pick{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}

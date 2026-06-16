@@ -672,31 +672,90 @@ async function loadWeather(lat, lon, label){
     $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,4).map(p=>pcard(p,null)).join("");
     observeImages($("#weatherGrid"));
     sec.style.display="";
-    // 상단바 날씨 칩
+    // 상단바 날씨 칩 (클릭 시 지역 변경 메뉴)
     const chip=$("#weatherChip");
-    if(chip){ chip.innerHTML=`${rec.emoji} ${esc(label)} ${temp}°`; chip.style.display=""; }
+    if(chip){ chip.innerHTML=`${rec.emoji} ${esc(label)} ${temp}° <span class="wc-caret">▾</span>`; chip.style.display=""; }
   }catch(e){ sec.style.display="none"; }
 }
+let _region = null;   // 현재 선택된 지역명 (중복 적용 방지)
+/* 지역 선택의 단일 진입점. local: 로컬 저장, remote: 계정(로그인 시)에 저장 */
+function selectRegion(name, opts){
+  opts = opts || {};
+  const local = opts.local !== false, remote = opts.remote !== false;
+  const r = REGIONS.find(x => x.name === name) || REGIONS[0];
+  _region = r.name;
+  const sel = $("#regionSel"); if (sel) sel.value = r.name;
+  highlightWeatherMenu(r.name);
+  loadWeather(r.lat, r.lon, r.name);
+  if (local){ try{ localStorage.setItem("region", r.name); }catch(e){} }
+  if (remote && window.saveRegionRemote) window.saveRegionRemote(r.name);
+}
+/* 계정에서 불러온 지역 적용 (로컬엔 저장하되 원격 재저장은 생략, 동일하면 무시) */
+window.applyRegion = function(name){
+  if (!REGIONS.some(r => r.name === name) || name === _region) return;
+  selectRegion(name, { local:true, remote:false });
+};
+
+/* 상단바 날씨 칩 → 지역 선택 드롭다운 */
+function buildWeatherMenu(){
+  let menu = $("#weatherMenu");
+  if (!menu){ menu = document.createElement("div"); menu.id = "weatherMenu"; menu.className = "weather-menu"; document.body.appendChild(menu); }
+  menu.innerHTML = `<div class="wm-h">지역 선택</div>` +
+    REGIONS.map(r => `<button class="wm-item" data-r="${esc(r.name)}">${esc(r.name)}</button>`).join("") +
+    `<button class="wm-item wm-geo" data-geo="1">📍 현재 위치</button>`;
+  menu.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { selectRegion(b.dataset.r); closeWeatherMenu(); });
+  menu.querySelector("[data-geo]").onclick = () => { useMyLocation(); closeWeatherMenu(); };
+  highlightWeatherMenu(_region);
+}
+function highlightWeatherMenu(name){
+  const menu = $("#weatherMenu"); if (!menu) return;
+  menu.querySelectorAll(".wm-item").forEach(b => b.classList.toggle("on", b.dataset.r === name));
+}
+function openWeatherMenu(){
+  const chip = $("#weatherChip"), menu = $("#weatherMenu"); if (!chip || !menu) return;
+  const rect = chip.getBoundingClientRect();
+  menu.style.top = (rect.bottom + 6) + "px";
+  menu.style.right = Math.max(8, window.innerWidth - rect.right) + "px";
+  menu.classList.add("open");
+}
+function closeWeatherMenu(){ const m = $("#weatherMenu"); if (m) m.classList.remove("open"); }
+
+/* 위치 권한은 '현재 위치'를 직접 누를 때만 요청 (저장된 지역은 그대로 둠) */
+function useMyLocation(){
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    pos => loadWeather(pos.coords.latitude, pos.coords.longitude, "내 위치"),
+    () => {},
+    { timeout:6000, maximumAge:600000 }
+  );
+}
+
 function initWeather(){
-  const sel=$("#regionSel"); if(!sel) return;
-  let cur=getRegionName();
-  if(!REGIONS.some(r=>r.name===cur)) cur="서울";
-  sel.innerHTML=REGIONS.map(r=>`<option value="${esc(r.name)}"${r.name===cur?" selected":""}>${esc(r.name)}</option>`).join("");
-  const apply=name=>{ const r=REGIONS.find(x=>x.name===name)||REGIONS[0]; loadWeather(r.lat,r.lon,r.name); };
-  sel.onchange=()=>{ try{ localStorage.setItem("region", sel.value); }catch(e){} apply(sel.value); };
-  // 시작은 위치 권한 요청 없이 저장된(또는 서울) 지역으로 표시
-  apply(cur);
-  // 사용자가 직접 누를 때만 위치 권한 요청
-  const geo=$("#regionGeo");
-  if(geo) geo.onclick=()=>{
-    if(!navigator.geolocation){ return; }
-    geo.textContent="📍 확인 중…";
-    navigator.geolocation.getCurrentPosition(
-      pos=>{ geo.textContent="📍 내 위치"; loadWeather(pos.coords.latitude, pos.coords.longitude, "내 위치"); },
-      ()=>{ geo.textContent="📍 내 위치"; },
-      { timeout:6000, maximumAge:600000 }
-    );
-  };
+  const sel = $("#regionSel");
+  let cur = getRegionName();
+  if (!REGIONS.some(r => r.name === cur)) cur = "서울";
+  if (sel){
+    sel.innerHTML = REGIONS.map(r => `<option value="${esc(r.name)}">${esc(r.name)}</option>`).join("");
+    sel.onchange = () => selectRegion(sel.value);
+  }
+  buildWeatherMenu();
+  // 상단바 칩 클릭 → 메뉴 토글
+  const chip = $("#weatherChip");
+  if (chip){
+    chip.addEventListener("click", e => {
+      e.preventDefault();
+      const m = $("#weatherMenu");
+      if (m && m.classList.contains("open")) closeWeatherMenu(); else openWeatherMenu();
+    });
+    document.addEventListener("click", e => {
+      const m = $("#weatherMenu");
+      if (m && m.classList.contains("open") && !m.contains(e.target) && !chip.contains(e.target)) closeWeatherMenu();
+    });
+    window.addEventListener("resize", closeWeatherMenu);
+  }
+  const geo = $("#regionGeo"); if (geo) geo.onclick = useMyLocation;
+  // 시작: 위치 권한 요청 없이 저장값(또는 서울)으로 표시 (원격 재저장 안 함)
+  selectRegion(cur, { local:false, remote:false });
 }
 
 /* =========================================================================

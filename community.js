@@ -15,14 +15,30 @@ function initCommunity(){
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   renderHomeWatch(); renderHomeCal();
   const wa = document.getElementById("watchAdd"); if (wa) wa.onclick = openWatchPicker;
-  sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); });
+  sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); syncRegion(); });
   sb.auth.onAuthStateChange((event, session) => {
     ME = (session && session.user) || null; renderAuthSlot();
     if (event === "PASSWORD_RECOVERY") openResetModal();          // 비밀번호 재설정 링크 진입
+    syncRegion();
     if (document.getElementById("commBody")) renderBoard(_board);
   });
 }
 function myNick(){ return (ME && (ME.user_metadata && ME.user_metadata.nickname || (ME.email||"").split("@")[0])) || "익명"; }
+
+/* ---------- 날씨 지역 설정을 계정에 저장/복원 (로그인 시 기기 간 유지) ---------- */
+window.saveRegionRemote = async function(name){
+  if (!sb || !ME) return;                       // 비로그인 시엔 localStorage만 (app.js가 처리)
+  try{ await sb.auth.updateUser({ data: { region: name } }); }catch(e){}
+};
+function syncRegion(){
+  if (!ME) return;
+  const remote = ME.user_metadata && ME.user_metadata.region;
+  if (remote){ if (window.applyRegion) window.applyRegion(remote); }      // 계정 값으로 복원
+  else {                                                                 // 계정에 없으면 현재 로컬값을 계정에 저장
+    let local = null; try{ local = localStorage.getItem("region"); }catch(e){}
+    if (local) window.saveRegionRemote(local);
+  }
+}
 function isGuest(){ return !!(ME && ME.is_anonymous); }
 
 /* ---------- 비회원(익명) 시작: 닉네임만 정하면 바로 사용 ---------- */
@@ -134,7 +150,10 @@ function renderAuthForm(mode){
 async function doSocial(provider){
   const msg = document.getElementById("authMsg");
   if (msg) msg.textContent = "이동 중…";
-  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin } });
+  const options = { redirectTo: location.origin };
+  // 카카오: 이메일(account_email) 동의 미설정 시 KOE205가 나므로 닉네임만 요청
+  if (provider === "kakao") options.scopes = "profile_nickname";
+  const { error } = await sb.auth.signInWithOAuth({ provider, options });
   if (error && msg) msg.textContent = "소셜 로그인 실패: " + error.message + " (관리자: Supabase에서 " + provider + " 공급자를 설정해주세요)";
 }
 async function doForgot(){
