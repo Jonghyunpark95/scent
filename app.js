@@ -552,22 +552,41 @@ async function loadShop(p){
     box.innerHTML = SHOP_WARN + naverLinkBtn(q);
     return;
   }
-  const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
-  const top = priced.slice(0, 5);
-  const min = priced[0];
+  const priced = data.items.filter(i => i.price > 0)
+    .map(i => ({ ...i, ml: mlOf(i.title) })).sort((a,b)=>a.price-b.price);
   const median = priced.length ? priced[Math.floor(priced.length/2)].price : 0;
   const susp = i => median && i.price < median * 0.5;   // 시세 절반 미만 → 가품 의심
+  // 용량(ml)별 칩 — 50ml·100ml 등 주력 용량 우선
+  const vols = [...new Set(priced.map(i=>i.ml).filter(Boolean))].sort((a,b)=>parseInt(a)-parseInt(b));
+  const volChips = ['전체', ...vols];
+
   box.innerHTML = `
-    <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
-    <div class="shop-list">${top.map(i=>`
-      <a class="shop-row${susp(i)?" warn":""}" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
-        <span class="mall">${esc(i.mall)}</span>
-        <span class="t">${susp(i)?'<span class="warn-tag">가품 의심</span> ':''}${esc(i.title)}</span>
-        <span class="p">${pf(i.price)}</span>
-      </a>`).join("")}</div>
+    <div class="shop-h">🛒 판매처·가격 <span class="low" id="shopLow"></span></div>
+    ${vols.length ? `<div class="vol-chips" id="volChips">${volChips.map((v,i)=>`<button class="${i===0?'on':''}" data-v="${esc(v)}">${esc(v)}</button>`).join("")}</div>` : ""}
+    <div class="shop-list" id="shopList"></div>
     ${SHOP_WARN}
     ${naverLinkBtn(q)}`;
+
+  function renderShopList(vol){
+    const arr = (vol === "전체") ? priced : priced.filter(i => i.ml === vol);
+    const lowEl = $("#shopLow"); if (lowEl) lowEl.textContent = arr.length ? `${vol==="전체"?"":vol+" "}최저가 ${pf(arr[0].price)}` : "해당 용량 없음";
+    const list = $("#shopList"); if (!list) return;
+    list.innerHTML = arr.slice(0,5).map(i=>`
+      <a class="shop-row${susp(i)?" warn":""}" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
+        <span class="mall">${esc(i.mall)}</span>
+        <span class="t">${susp(i)?'<span class="warn-tag">가품 의심</span> ':''}${i.ml?`<span class="ml-tag">${esc(i.ml)}</span> `:''}${esc(i.title)}</span>
+        <span class="p">${pf(i.price)}</span>
+      </a>`).join("") || `<div class="empty-state" style="padding:12px">해당 용량 상품이 없어요.</div>`;
+  }
+  renderShopList("전체");
+  const vc = $("#volChips");
+  if (vc) vc.addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    vc.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+    renderShopList(b.dataset.v);
+  });
 }
+function mlOf(title){ const m = String(title||"").match(/(\d{2,3})\s?ml/i); return m ? m[1] + "ml" : null; }
 
 /* =========================================================================
    디퓨저 (네이버 쇼핑 기반)

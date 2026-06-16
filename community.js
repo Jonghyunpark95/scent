@@ -26,8 +26,10 @@ function myNick(){ return (ME && (ME.user_metadata && ME.user_metadata.nickname 
 function renderAuthSlot(){
   const slot = document.getElementById("authSlot"); if (!slot) return;
   if (ME){
-    slot.innerHTML = `<span class="auth-nick">${esc2(myNick())}님</span><button class="auth-btn ghost" id="logoutBtn">로그아웃</button>`;
+    slot.innerHTML = `<button class="bell" id="bellBtn" title="가격 알림">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></button><span class="auth-nick">${esc2(myNick())}님</span><button class="auth-btn ghost" id="logoutBtn">로그아웃</button>`;
     document.getElementById("logoutBtn").onclick = async () => { await sb.auth.signOut(); };
+    document.getElementById("bellBtn").onclick = openAlerts;
+    checkAlerts();
   } else {
     slot.innerHTML = `<button class="auth-btn" id="loginBtn">로그인/가입</button>`;
     document.getElementById("loginBtn").onclick = openAuthModal;
@@ -271,6 +273,7 @@ window.renderPriceChart = async function(p){
   const cur = pts[pts.length - 1].y;
   const tkey = "target:" + p.id;
   let target = parseInt(localStorage.getItem(tkey) || "", 10) || null;
+  if (ME){ try{ const { data } = await sb.from("price_alerts").select("target_price").eq("perfume_key", p.id).maybeSingle(); if (data && data.target_price) target = data.target_price; }catch(e){} }
   box.innerHTML = `<div class="pc-h">📈 시세 추이 <span class="pc-cur">현재 시세 ${won2(cur)}</span></div>
     <div id="pcChart"></div>
     <div class="pc-target">🎯 내 목표가 <input id="pcInput" type="number" inputmode="numeric" placeholder="예: 250000" value="${target||""}"><button class="btn" id="pcSet">설정</button></div>
@@ -278,9 +281,17 @@ window.renderPriceChart = async function(p){
   mountChart(box.querySelector("#pcChart"), pts, target);
   box.querySelector("#pcSet").onclick = () => {
     const v = parseInt(box.querySelector("#pcInput").value, 10);
-    if (v > 0){ localStorage.setItem(tkey, String(v)); target = v; } else { localStorage.removeItem(tkey); target = null; }
+    if (v > 0){
+      localStorage.setItem(tkey, String(v)); target = v;
+      if (ME) sb.from("price_alerts").upsert({ user_id: ME.id, perfume_key: p.id, perfume_name: p.name, target_price: v }, { onConflict: "user_id,perfume_key" }).then(checkAlerts);
+    } else {
+      localStorage.removeItem(tkey); target = null;
+      if (ME) sb.from("price_alerts").delete().eq("perfume_key", p.id).then(checkAlerts);
+    }
     mountChart(box.querySelector("#pcChart"), pts, target);
-    box.querySelector("#pcMsg").innerHTML = target ? targetMsg(cur, target) : "목표가가 해제됐어요.";
+    box.querySelector("#pcMsg").innerHTML = target
+      ? targetMsg(cur, target) + (ME ? " <b>🔔 알림 설정됨</b>" : " <span style='color:var(--muted)'>(로그인하면 알림으로 받아요)</span>")
+      : "목표가가 해제됐어요.";
   };
 };
 function targetMsg(cur, target){
@@ -346,6 +357,41 @@ async function renderHomeCal(){
   box.innerHTML = (data && data.length)
     ? data.map(d => `<div class="home-cal-row"><span class="d-date">${(d.worn_on||"").slice(5)}</span> <b>${esc2(d.perfume_name)}</b> <span class="d-nick">${esc2(d.nickname||"익명")}</span></div>`).join("")
     : `<div class="empty-state" style="padding:10px">아직 기록이 없어요</div>`;
+}
+
+/* =========================================================================
+   가격 목표가 알림 (🔔)
+   ========================================================================= */
+window.__alerts = [];
+function setBadge(n){ const b = document.getElementById("bellBadge"); if (!b) return; if (n > 0){ b.textContent = n; b.style.display = ""; } else b.style.display = "none"; }
+async function checkAlerts(){
+  if (!ME || !sb) return;
+  const { data: alerts } = await sb.from("price_alerts").select("*");
+  if (!alerts || !alerts.length){ window.__alerts = []; setBadge(0); return; }
+  const keys = alerts.map(a => a.perfume_key);
+  const { data: ph } = await sb.from("price_history").select("perfume_key,price,collected_on").in("perfume_key", keys).order("collected_on", { ascending: false });
+  const latest = {}; (ph || []).forEach(r => { if (!(r.perfume_key in latest)) latest[r.perfume_key] = r.price; });
+  window.__alerts = alerts.map(a => {
+    const cur = (a.perfume_key in latest) ? latest[a.perfume_key] : null;
+    return { ...a, current: cur, hit: cur != null && cur <= a.target_price };
+  });
+  setBadge(window.__alerts.filter(x => x.hit).length);
+}
+function openAlerts(){
+  const m = ensureModal("alertModal"); openM(m);
+  const list = (window.__alerts || []).slice().sort((a, b) => (b.hit - a.hit));
+  m.innerHTML = `<div class="box card pad" style="max-width:460px;position:relative">
+    <button class="close" data-close>✕</button>
+    <h3 style="margin:0 0 14px">🔔 가격 알림</h3>
+    ${list.length ? list.map(a => `<div class="alert-row ${a.hit?'hit':''}">
+        <div><b>${esc2(a.perfume_name || a.perfume_key)}</b>
+          <div class="alert-sub">목표 ${won2(a.target_price)} · 현재 ${a.current != null ? won2(a.current) : "수집중"}</div></div>
+        <span class="alert-badge ${a.hit?'on':''}">${a.hit ? "🎉 목표 달성!" : "대기중"}</span>
+      </div>`).join("")
+      : `<div class="empty-state" style="padding:16px">설정한 목표가가 없어요.<br>향수 상세에서 🎯 목표가를 설정하면 여기서 알림을 받아요!</div>`}
+    <div class="rv-login" style="margin-top:12px">시세는 매일 자동 업데이트돼요. 목표가 이하가 되면 🎉 로 표시됩니다.</div>
+  </div>`;
+  wireClose(m);
 }
 
 // supabase-js 로드 이후 초기화

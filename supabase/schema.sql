@@ -126,3 +126,17 @@ alter table public.price_history enable row level security;
 drop policy if exists "price_read" on public.price_history;
 create policy "price_read" on public.price_history for select using (true);
 -- 쓰기는 service_role(크론)만 → RLS 우회하므로 insert 정책 불필요
+
+-- 7) 가격 목표가 알림
+create table if not exists public.price_alerts (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  perfume_key text not null,
+  perfume_name text,
+  target_price int not null,
+  created_at timestamptz default now(),
+  unique (user_id, perfume_key)
+);
+alter table public.price_alerts enable row level security;
+drop policy if exists "alerts_rw" on public.price_alerts;
+create policy "alerts_rw" on public.price_alerts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
