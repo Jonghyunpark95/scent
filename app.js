@@ -39,24 +39,25 @@ function artHTML(p){
 window.__ph = () => placeholderHTML();
 function findPerfume(id){ return PERFUMES.find(x => x.id === id) || (window.__apiCache && window.__apiCache[id]); }
 
-/* 이미지 캐시 (세션 유지 → API 호출 절약) */
+/* 이미지 캐시 (세션 유지 → API 호출 절약). 네이버 쇼핑 이미지를 사용. */
 const imgCache = {};
-async function fetchImage(term){
-  if (!term) return null;
-  if (term in imgCache) return imgCache[term];
-  try{ const s = sessionStorage.getItem("img:" + term); if (s !== null) return (imgCache[term] = s || null); }catch(e){}
-  const data = await apiFetch("search", { q: term, limit: 1 });
-  const hit = data && data.results && data.results[0];
+async function naverImageFor(p){
+  const q = p._api ? p.name : (p.brand ? p.brand + " " + p.name : p.name);
+  if (!q) return null;
+  if (q in imgCache) return imgCache[q];
+  try{ const s = sessionStorage.getItem("nimg:" + q); if (s !== null) return (imgCache[q] = s || null); }catch(e){}
+  const data = await naverFetch("search", { q, display: 5 });
+  const hit = data && data.items && data.items.find(i => i.image);
   const url = (hit && hit.image) || null;
-  imgCache[term] = url;
-  try{ sessionStorage.setItem("img:" + term, url || ""); }catch(e){}
+  imgCache[q] = url;
+  try{ sessionStorage.setItem("nimg:" + q, url || ""); }catch(e){}
   return url;
 }
 
-/* 카드가 화면에 보이면 실제 사진을 지연 로딩 */
+/* 카드가 화면에 보이면 실제 사진을 지연 로딩 (네이버) */
 let _imgObs;
 function observeImages(scope){
-  if (!API.enabled) return;
+  if (!NAVER.enabled) return;
   if (!_imgObs){
     _imgObs = new IntersectionObserver(ents=>{
       ents.forEach(en=>{ if(en.isIntersecting){ _imgObs.unobserve(en.target); lazyLoadImage(en.target); } });
@@ -69,7 +70,7 @@ function observeImages(scope){
 }
 async function lazyLoadImage(card){
   const p = findPerfume(card.dataset.id); if (!p || p._img) return;
-  const url = await fetchImage(getEnTerm(p));
+  const url = await naverImageFor(p);
   if (url){
     p._img = url;
     const art = card.querySelector(".art");
@@ -483,6 +484,7 @@ async function apiFetch(action, params){
   try{
     const qs = new URLSearchParams({ action, ...params }).toString();
     const res = await fetch(`/api/fragrance?${qs}`);
+    if (res.status === 429){ API.enabled = false; return null; }  // 월 한도 초과 → 더 호출 안 함
     if (!res.ok) throw new Error("api " + res.status);
     const json = await res.json();
     if (json && json.ok === false) return null;
@@ -492,7 +494,6 @@ async function apiFetch(action, params){
 async function pingAPI(){
   const data = await apiFetch("status", {});
   API.enabled = !!(data && data.configured);
-  if (API.enabled) observeImages(document);   // 그려진 카드들의 실제 사진 로딩
 }
 
 /* =========================================================================
@@ -667,8 +668,8 @@ function openModal(p){
     <div class="reviewbox" id="reviewBox"></div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
-  if (!p._img && API.enabled){
-    fetchImage(getEnTerm(p)).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
+  if (!p._img && NAVER.enabled){
+    naverImageFor(p).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }
   loadShop(p);
   if (window.renderReviews) window.renderReviews(p);
@@ -702,4 +703,4 @@ renderFeatured();
 initBrands();
 pingAPI();
 initWeather();
-pingNaver().then(()=>{ initDiffusers(); initNews(); });
+pingNaver().then(()=>{ initDiffusers(); initNews(); observeImages(document); });
