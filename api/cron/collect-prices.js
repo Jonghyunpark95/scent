@@ -31,6 +31,47 @@ const TRACK = [
   { key: "ll-another13", q: "르라보 어나더 13" },
 ];
 
+// 함수 실행 시간 한도 상향 (수집 대상이 많아도 타임아웃 방지)
+export const config = { maxDuration: 60 };
+
+// 사용자가 추적 요청한 향수(tracked_perfumes) 목록을 Supabase에서 읽어온다.
+async function loadTracked(SB, SR) {
+  try {
+    const r = await fetch(`${SB}/rest/v1/tracked_perfumes?select=perfume_key,query,perfume_name`, {
+      headers: { apikey: SR, Authorization: "Bearer " + SR },
+    });
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return (rows || [])
+      .filter(x => x && x.perfume_key)
+      .map(x => ({ key: x.perfume_key, q: x.query || x.perfume_name || x.perfume_key }));
+  } catch (e) { return []; }
+}
+
+// 향수 1개의 중앙값 시세를 수집해 저장. 성공 시 true.
+async function collectOne(t, { ID, SECRET, SB, SR, today, JUNK }) {
+  try {
+    const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(t.q)}&display=40&sort=sim`;
+    const j = await fetch(url, { headers: { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET } }).then(r => r.json());
+    const prices = (j.items || [])
+      .map(it => ({ title: String(it.title || "").replace(/<[^>]+>/g, ""), price: parseInt(it.lprice, 10) || 0 }))
+      .filter(it => it.price >= 30000 && !JUNK.test(it.title))
+      .map(it => it.price)
+      .sort((a, b) => a - b);
+    if (prices.length < 3) return false;                   // 표본 너무 적으면 건너뜀
+    const median = prices[Math.floor(prices.length / 2)];  // 중앙값 = 이상치에 강한 '정상 시세'
+    const r = await fetch(`${SB}/rest/v1/price_history?on_conflict=perfume_key,collected_on`, {
+      method: "POST",
+      headers: {
+        apikey: SR, Authorization: "Bearer " + SR,
+        "Content-Type": "application/json", Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({ perfume_key: t.key, price: median, collected_on: today }),
+    });
+    return r.ok;
+  } catch (e) { return false; }
+}
+
 export default async function handler(req, res) {
   const ID = process.env.NAVER_CLIENT_ID, SECRET = process.env.NAVER_CLIENT_SECRET;
   const SB = process.env.SUPABASE_URL, SR = process.env.SUPABASE_SERVICE_ROLE;
@@ -40,31 +81,22 @@ export default async function handler(req, res) {
   const today = new Date().toISOString().slice(0, 10);
   // 시향지·샘플·소분(데칸트)·15ml 이하 미니 등 본품이 아닌 항목 제외
   const JUNK = /시향지|시향|샘플|공병|소분|분할|데칸트|디[캔켄]트|어토마이저|미니어|바이알|vial|추출|(?:[^0-9]|^)(?:[1-9]|1[0-5])\s?ml(?![0-9])/i;
+
+  // 기본 인기 향수(seed) + 사용자가 추적 요청한 향수 → key 기준 중복 제거
+  const tracked = await loadTracked(SB, SR);
+  const byKey = new Map();
+  for (const t of TRACK) byKey.set(t.key, t);
+  for (const t of tracked) if (!byKey.has(t.key)) byKey.set(t.key, t);
+  const LIST = [...byKey.values()];
+
+  // 동시 요청 수 제한(8)으로 병렬 수집 → 많은 향수도 타임아웃 없이 처리
+  const ctx = { ID, SECRET, SB, SR, today, JUNK };
   let saved = 0;
-
-  for (const t of TRACK) {
-    try {
-      const url = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(t.q)}&display=40&sort=sim`;
-      const j = await fetch(url, { headers: { "X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET } }).then(r => r.json());
-      const prices = (j.items || [])
-        .map(it => ({ title: String(it.title || "").replace(/<[^>]+>/g, ""), price: parseInt(it.lprice, 10) || 0 }))
-        .filter(it => it.price >= 30000 && !JUNK.test(it.title))
-        .map(it => it.price)
-        .sort((a, b) => a - b);
-      if (prices.length < 3) continue;                    // 표본 너무 적으면 건너뜀
-      // 중앙값 = 가품/decant 이상치에 휘둘리지 않는 '정상 시세'
-      const median = prices[Math.floor(prices.length / 2)];
-
-      const r = await fetch(`${SB}/rest/v1/price_history?on_conflict=perfume_key,collected_on`, {
-        method: "POST",
-        headers: {
-          apikey: SR, Authorization: "Bearer " + SR,
-          "Content-Type": "application/json", Prefer: "resolution=merge-duplicates",
-        },
-        body: JSON.stringify({ perfume_key: t.key, price: median, collected_on: today }),
-      });
-      if (r.ok) saved++;
-    } catch (e) { /* 개별 실패는 건너뜀 */ }
+  const CONCURRENCY = 8;
+  for (let i = 0; i < LIST.length; i += CONCURRENCY) {
+    const chunk = LIST.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(chunk.map(t => collectOne(t, ctx)));
+    saved += results.filter(Boolean).length;
   }
-  return res.status(200).json({ ok: true, date: today, saved, tracked: TRACK.length });
+  return res.status(200).json({ ok: true, date: today, saved, tracked: LIST.length });
 }

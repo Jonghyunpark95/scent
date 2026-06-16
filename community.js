@@ -16,18 +16,60 @@ function initCommunity(){
   renderHomeWatch(); renderHomeCal();
   const wa = document.getElementById("watchAdd"); if (wa) wa.onclick = openWatchPicker;
   sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); });
-  sb.auth.onAuthStateChange((_e, session) => {
+  sb.auth.onAuthStateChange((event, session) => {
     ME = (session && session.user) || null; renderAuthSlot();
+    if (event === "PASSWORD_RECOVERY") openResetModal();          // 비밀번호 재설정 링크 진입
     if (document.getElementById("commBody")) renderBoard(_board);
   });
 }
 function myNick(){ return (ME && (ME.user_metadata && ME.user_metadata.nickname || (ME.email||"").split("@")[0])) || "익명"; }
+function isGuest(){ return !!(ME && ME.is_anonymous); }
+
+/* ---------- 비회원(익명) 시작: 닉네임만 정하면 바로 사용 ---------- */
+function askNickname(actionLabel){
+  return new Promise(resolve => {
+    const m = ensureModal("guestModal");
+    m.innerHTML = `<div class="box card pad" style="max-width:360px;position:relative">
+      <button class="close" data-close>✕</button>
+      <h3 style="margin:0 0 8px">닉네임으로 바로 시작 🙂</h3>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 14px">${esc2(actionLabel || "")}가입 없이 닉네임만 정하면 돼요.</p>
+      <input class="auth-in" id="gNick" placeholder="닉네임 (2자 이상)" maxlength="20">
+      <button class="btn block" id="gGo">비회원으로 시작</button>
+      <div class="auth-guest"><button id="gLogin">이메일·소셜 계정으로 로그인 →</button></div>
+    </div>`;
+    openM(m);
+    let done = false;
+    const finish = v => { if (done) return; done = true; closeM(m); resolve(v); };
+    m.querySelectorAll("[data-close]").forEach(b => b.onclick = () => finish(null));
+    m.onclick = e => { if (e.target.id === "guestModal") finish(null); };   // 배경 클릭 = 취소
+    const go = () => { const v = m.querySelector("#gNick").value.trim(); if (v.length < 2){ m.querySelector("#gNick").focus(); return; } finish(v); };
+    m.querySelector("#gGo").onclick = go;
+    m.querySelector("#gNick").addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    m.querySelector("#gLogin").onclick = () => { finish(null); openAuthModal(); };
+    setTimeout(() => { const i = m.querySelector("#gNick"); if (i) i.focus(); }, 50);
+  });
+}
+/* 로그인돼 있으면 true. 아니면 닉네임 입력 → 익명 로그인. 비활성화 시 일반 로그인으로 폴백. */
+async function ensureAuthed(actionLabel){
+  if (ME) return true;
+  const nick = await askNickname(actionLabel);
+  if (nick === null) return false;
+  const { data, error } = await sb.auth.signInAnonymously({ options: { data: { nickname: nick } } });
+  if (error || !data || !data.user){
+    openAuthModal();
+    const am = document.getElementById("authMsg");
+    if (am) am.textContent = "비회원 시작이 꺼져 있어요. 이메일·소셜로 로그인해주세요.";
+    return false;
+  }
+  ME = data.user; renderAuthSlot();
+  return true;
+}
 
 /* ---------- 상단 로그인 상태 ---------- */
 function renderAuthSlot(){
   const slot = document.getElementById("authSlot"); if (!slot) return;
   if (ME){
-    slot.innerHTML = `<button class="bell" id="bellBtn" title="가격 알림">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></button><span class="auth-nick">${esc2(myNick())}님</span><button class="auth-btn ghost" id="logoutBtn">로그아웃</button>`;
+    slot.innerHTML = `<button class="bell" id="bellBtn" title="가격 알림">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></button><span class="auth-nick">${esc2(myNick())}님${isGuest()?" <small style='color:var(--muted);font-weight:600'>(비회원)</small>":""}</span><button class="auth-btn ghost" id="logoutBtn">로그아웃</button>`;
     document.getElementById("logoutBtn").onclick = async () => { await sb.auth.signOut(); };
     document.getElementById("bellBtn").onclick = openAlerts;
     checkAlerts();
@@ -60,22 +102,66 @@ function openAuthModal(){
   tabs.forEach(b => b.onclick = () => { tabs.forEach(x=>x.classList.toggle("on", x===b)); renderAuthForm(b.dataset.t); });
   renderAuthForm("login");
 }
+function socialHTML(){
+  return `<div class="auth-social">
+      <button class="social-btn kakao" data-prov="kakao">💬 카카오로 계속하기</button>
+      <button class="social-btn google" data-prov="google">🇬 구글로 계속하기</button>
+    </div>
+    <div class="auth-sep">또는 이메일로</div>`;
+}
+function wireSocial(f){ f.querySelectorAll(".social-btn").forEach(b => b.onclick = () => doSocial(b.dataset.prov)); }
 function renderAuthForm(mode){
   const f = document.getElementById("authForm"); const msg = document.getElementById("authMsg"); msg.textContent = "";
   if (mode === "signup"){
-    f.innerHTML = `
+    f.innerHTML = socialHTML() + `
       <input class="auth-in" id="suNick" placeholder="닉네임" maxlength="20">
       <input class="auth-in" id="suEmail" type="email" placeholder="이메일">
       <input class="auth-in" id="suPw" type="password" placeholder="비밀번호 (6자 이상)">
       <button class="btn block" id="suBtn">가입하기 (이메일 인증)</button>`;
     f.querySelector("#suBtn").onclick = doSignup;
+    wireSocial(f);
   } else {
-    f.innerHTML = `
+    f.innerHTML = socialHTML() + `
       <input class="auth-in" id="liEmail" type="email" placeholder="이메일">
       <input class="auth-in" id="liPw" type="password" placeholder="비밀번호">
+      <button class="auth-forgot" id="liForgot">비밀번호를 잊으셨나요?</button>
       <button class="btn block" id="liBtn">로그인</button>`;
     f.querySelector("#liBtn").onclick = doLogin;
+    f.querySelector("#liForgot").onclick = doForgot;
+    wireSocial(f);
   }
+}
+async function doSocial(provider){
+  const msg = document.getElementById("authMsg");
+  if (msg) msg.textContent = "이동 중…";
+  const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin } });
+  if (error && msg) msg.textContent = "소셜 로그인 실패: " + error.message + " (관리자: Supabase에서 " + provider + " 공급자를 설정해주세요)";
+}
+async function doForgot(){
+  const email = (document.getElementById("liEmail").value || "").trim();
+  const msg = document.getElementById("authMsg");
+  if (!email){ msg.textContent = "가입한 이메일을 입력한 뒤 다시 눌러주세요."; return; }
+  msg.textContent = "메일 보내는 중…";
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+  msg.textContent = error ? ("실패: " + error.message)
+    : "✅ 비밀번호 재설정 메일을 보냈어요! 메일 속 링크를 누르면 새 비밀번호를 정할 수 있어요.";
+}
+function openResetModal(){
+  const m = ensureModal("resetModal"); openM(m);
+  m.innerHTML = `<div class="box card pad" style="max-width:380px;position:relative">
+    <button class="close" data-close>✕</button>
+    <h3 style="margin:0 0 12px">🔑 새 비밀번호 설정</h3>
+    <input class="auth-in" id="rsPw" type="password" placeholder="새 비밀번호 (6자 이상)">
+    <button class="btn block" id="rsGo">비밀번호 변경</button>
+    <div class="auth-msg" id="rsMsg"></div></div>`;
+  wireClose(m);
+  m.querySelector("#rsGo").onclick = async () => {
+    const pw = m.querySelector("#rsPw").value; const msg = m.querySelector("#rsMsg");
+    if (pw.length < 6){ msg.textContent = "6자 이상 입력해주세요."; return; }
+    const { error } = await sb.auth.updateUser({ password: pw });
+    msg.textContent = error ? ("실패: " + error.message) : "✅ 변경됐어요! 새 비밀번호로 로그인하세요.";
+    if (!error) setTimeout(() => closeM(m), 1600);
+  };
 }
 async function doSignup(){
   const nick = document.getElementById("suNick").value.trim();
@@ -110,9 +196,8 @@ window.renderReviews = async function(p){
     document.getElementById("rvHead").innerHTML = `구매평 · 별점 ${data.length?`<span class="rv-avg">★ ${avg.toFixed(1)} · ${data.length}개</span>`:""}`;
     list.innerHTML = data.length ? data.map(rvRow).join("") : `<div class="empty-state" style="padding:14px">아직 구매평이 없어요. 첫 후기를 남겨보세요! 🙂</div>`;
   }
-  box.insertAdjacentHTML("beforeend", ME ? writeFormHTML() : `<div class="rv-login">구매평을 남기려면 <a href="#" id="rvLogin">로그인/가입</a>이 필요해요</div>`);
-  if (ME) wireWriteForm(box, p);
-  else { const a = box.querySelector("#rvLogin"); if (a) a.onclick = e => { e.preventDefault(); openAuthModal(); }; }
+  box.insertAdjacentHTML("beforeend", writeFormHTML());
+  wireWriteForm(box, p);
 };
 function rvRow(r){
   const stars = "★".repeat(r.rating) + "☆".repeat(5 - r.rating);
@@ -131,6 +216,7 @@ function wireWriteForm(box, p){
   stars.forEach(s => s.onclick = () => { rating = +s.dataset.n; stars.forEach(x => x.textContent = (+x.dataset.n <= rating) ? "★" : "☆"); });
   box.querySelector("#rvSubmit").onclick = async () => {
     if (!rating){ alert("별점을 선택해주세요 ⭐"); return; }
+    if (!(await ensureAuthed("구매평을 남기려면 "))) return;
     const body = box.querySelector("#rvBody").value.trim();
     const { error } = await sb.from("reviews").insert({
       user_id: ME.id, nickname: myNick(), perfume_key: p.id, perfume_name: p.name, brand: p.brand, rating, body,
@@ -172,10 +258,9 @@ async function renderBoard(board){
   _board = board;
   const body = document.getElementById("commBody"); if (!body || !sb) return;
   if (board === "diary") return renderDiary(body);
-  body.innerHTML = `<div class="comm-top">${ME?`<button class="btn" id="newPost">✏️ 글쓰기</button>`:`<span class="rv-login">글을 쓰려면 <a href="#" id="needLogin">로그인</a>이 필요해요</span>`}</div>
+  body.innerHTML = `<div class="comm-top"><button class="btn" id="newPost">✏️ 글쓰기</button></div>
     <div id="postList"><div class="shop-loading"><span class="spinner"></span> 불러오는 중…</div></div>`;
-  if (ME) body.querySelector("#newPost").onclick = () => openPostWrite(board);
-  else body.querySelector("#needLogin").onclick = e => { e.preventDefault(); openAuthModal(); };
+  body.querySelector("#newPost").onclick = () => openPostWrite(board);
   const { data } = await sb.from("posts").select("*").eq("board", board).order("created_at", { ascending: false }).limit(50);
   if (_board !== board) return;
   const list = body.querySelector("#postList"); if (!list) return;
@@ -197,6 +282,7 @@ function openPostWrite(board){
   m.querySelector("#pSubmit").onclick = async () => {
     const title = m.querySelector("#pTitle").value.trim(), body = m.querySelector("#pBody").value.trim();
     if (!title){ alert("제목을 입력해주세요"); return; }
+    if (!(await ensureAuthed("글을 등록하려면 "))) return;
     const { error } = await sb.from("posts").insert({ user_id: ME.id, nickname: myNick(), board, title, body });
     if (error){ alert("등록 실패: " + error.message); return; }
     closeM(m); renderBoard(board);
@@ -216,42 +302,44 @@ async function openPostView(id){
     ${ME&&ME.id===post.user_id?`<button class="post-del" data-del>삭제</button>`:""}
     <div class="cmts"><h5>댓글 ${cmts?cmts.length:0}</h5>
       ${(cmts||[]).map(c=>`<div class="cmt"><b>${esc2(c.nickname||"익명")}</b> ${esc2(c.body)}</div>`).join("") || `<div class="empty-state" style="padding:8px">첫 댓글을 남겨보세요</div>`}</div>
-    ${ME?`<div class="cmt-write"><input class="auth-in" id="cBody" placeholder="댓글 달기" style="margin:0"><button class="btn" id="cSubmit">등록</button></div>`:`<div class="rv-login">댓글은 <a href="#" data-login>로그인</a> 후 가능해요</div>`}`;
+    <div class="cmt-write"><input class="auth-in" id="cBody" placeholder="댓글 달기" style="margin:0"><button class="btn" id="cSubmit">등록</button></div>`;
   wireClose(m);
-  if (ME){
-    box.querySelector("#cSubmit").onclick = async () => {
-      const b = box.querySelector("#cBody").value.trim(); if (!b) return;
-      const { error } = await sb.from("comments").insert({ post_id: id, user_id: ME.id, nickname: myNick(), body: b });
-      if (error){ alert(error.message); return; }
-      openPostView(id);
-    };
-    if (ME.id === post.user_id) box.querySelector("[data-del]").onclick = async () => {
+  box.querySelector("#cSubmit").onclick = async () => {
+    const b = box.querySelector("#cBody").value.trim(); if (!b) return;
+    if (!(await ensureAuthed("댓글을 남기려면 "))) return;
+    const { error } = await sb.from("comments").insert({ post_id: id, user_id: ME.id, nickname: myNick(), body: b });
+    if (error){ alert(error.message); return; }
+    openPostView(id);
+  };
+  if (ME && ME.id === post.user_id){
+    const db = box.querySelector("[data-del]");
+    if (db) db.onclick = async () => {
       if (!confirm("이 글을 삭제할까요?")) return;
       await sb.from("posts").delete().eq("id", id); closeM(m); renderBoard(post.board);
     };
-  } else { const a = box.querySelector("[data-login]"); if (a) a.onclick = e => { e.preventDefault(); openAuthModal(); }; }
+  }
 }
 
 /* ---------- 향수 캘린더 ---------- */
 async function renderDiary(body){
-  body.innerHTML = `${ME?`<div class="diary-write card pad">
+  body.innerHTML = `<div class="diary-write card pad">
       <div style="font-weight:800;margin-bottom:10px">📅 오늘 무슨 향수 뿌렸어요?</div>
       <input class="auth-in" id="dDate" type="date" value="${todayStr()}">
       <input class="auth-in" id="dPerf" placeholder="향수 이름 (예: 디올 쏘바쥬)">
       <input class="auth-in" id="dMemo" placeholder="한 줄 메모 (선택)">
       <label class="diary-pub"><input type="checkbox" id="dPub" checked> 다른 사람에게 공개</label>
       <button class="btn block" id="dSubmit">기록하기</button>
-    </div>`:`<div class="rv-login" style="margin-bottom:14px">캘린더 기록은 <a href="#" id="dLogin">로그인</a> 후 가능해요</div>`}
+    </div>
     <div id="diaryFeed"><div class="shop-loading"><span class="spinner"></span> 불러오는 중…</div></div>`;
-  if (ME) body.querySelector("#dSubmit").onclick = async () => {
+  body.querySelector("#dSubmit").onclick = async () => {
     const worn_on = body.querySelector("#dDate").value, perfume_name = body.querySelector("#dPerf").value.trim(),
           memo = body.querySelector("#dMemo").value.trim(), is_public = body.querySelector("#dPub").checked;
     if (!worn_on || !perfume_name){ alert("날짜와 향수를 입력해주세요"); return; }
+    if (!(await ensureAuthed("캘린더에 기록하려면 "))) return;
     const { error } = await sb.from("diary").insert({ user_id: ME.id, nickname: myNick(), worn_on, perfume_name, memo, is_public });
     if (error){ alert(error.message); return; }
     renderDiary(body);
   };
-  else body.querySelector("#dLogin").onclick = e => { e.preventDefault(); openAuthModal(); };
   const { data } = await sb.from("diary").select("*").order("worn_on", { ascending: false }).limit(40);
   const feed = body.querySelector("#diaryFeed"); if (!feed) return;
   feed.innerHTML = (data && data.length) ? data.map(d=>`<div class="diary-item">
@@ -361,22 +449,72 @@ async function renderHomeWatch(){
   watch.forEach(k => { const pts = byKey[k]; if (pts && pts.length){ const el = list.querySelector(`.watch-chart[data-k="${k}"]`); if (el) mountChart(el, pts, null); } });
   list.querySelectorAll(".watch-x").forEach(x => x.onclick = () => { setWatch(getWatch().filter(i => i !== x.dataset.k)); renderHomeWatch(); });
 }
+function perfById(id){ return (typeof PERFUMES !== "undefined") && PERFUMES.find(x => x.id === id); }
+/* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
+async function registerTracked(id){
+  if (!sb) return;
+  const p = perfById(id); if (!p) return;
+  try{
+    await sb.from("tracked_perfumes").upsert(
+      { perfume_key: id, perfume_name: p.name, query: (p.brand ? p.brand + " " : "") + p.name },
+      { onConflict: "perfume_key" }
+    );
+  }catch(e){ /* 테이블 없으면 무시 (마이그레이션 전) */ }
+}
+async function addWatch(id){
+  const a = getWatch(); if (!a.includes(id)){ a.push(id); setWatch(a); }
+  await registerTracked(id);
+}
+window.isWatched = function(id){ return getWatch().includes(id); };
+window.toggleWatch = async function(p, btn){
+  if (!p || p._api) return;
+  const a = getWatch(), has = a.includes(p.id);
+  if (has){
+    setWatch(a.filter(x => x !== p.id));
+    if (btn){ btn.classList.remove("on"); btn.textContent = "📈 이 향수 시세 추적하기"; }
+  } else {
+    await addWatch(p.id);
+    if (btn){ btn.classList.add("on"); btn.textContent = "✓ 시세 추적 중 · 홈에서 보기"; }
+  }
+  renderHomeWatch();
+};
+
 async function openWatchPicker(){
   const m = ensureModal("watchModal"); openM(m);
-  m.innerHTML = `<div class="box card pad" style="max-width:420px;position:relative"><button class="close" data-close>✕</button><h3 style="margin:0 0 12px">시세 추가</h3><div class="shop-loading"><span class="spinner"></span> 불러오는 중…</div></div>`;
-  const { data } = await sb.from("price_history").select("perfume_key");
-  const keys = [...new Set((data || []).map(r => r.perfume_key))];
   const watch = new Set(getWatch());
-  const box = m.querySelector(".box");
-  box.innerHTML = `<button class="close" data-close>✕</button><h3 style="margin:0 0 6px">시세 추가</h3>
-    <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">시세가 수집되는 향수예요. 누르면 홈 워치리스트에 추가됩니다.</p>
-    <div class="watch-pick">${keys.map(k => `<button class="watch-pick-row" data-k="${esc2(k)}" ${watch.has(k)?"disabled":""}>${esc2(pname(k))} ${watch.has(k)?'<span class="wp-added">추가됨</span>':'<span class="wp-add">+ 추가</span>'}</button>`).join("")}</div>`;
+  const all = (typeof PERFUMES !== "undefined" ? PERFUMES : []).filter(p => !p._api);
+  m.innerHTML = `<div class="box card pad" style="max-width:460px;position:relative">
+    <button class="close" data-close>✕</button>
+    <h3 style="margin:0 0 6px">시세 추적 추가</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">향수명·브랜드로 검색해 추가하세요. 추가하면 매일 시세를 자동 수집해 그래프로 보여드려요.</p>
+    <input class="watch-search" id="watchSearch" placeholder="🔍 향수명 또는 브랜드 검색 (예: 상탈, 디올)" autocomplete="off">
+    <div class="watch-pick" id="watchPick"></div></div>`;
   wireClose(m);
-  box.querySelectorAll(".watch-pick-row").forEach(b => b.onclick = () => {
-    if (b.disabled) return;
-    const a = getWatch(); if (!a.includes(b.dataset.k)) a.push(b.dataset.k);
-    setWatch(a); closeM(m); renderHomeWatch();
-  });
+  // 이미 시세 데이터가 있는 향수 표시 (참고용)
+  let haveData = new Set();
+  try{ const { data } = await sb.from("price_history").select("perfume_key"); haveData = new Set((data || []).map(r => r.perfume_key)); }catch(e){}
+  const pickBox = m.querySelector("#watchPick"), si = m.querySelector("#watchSearch");
+  const nrm = s => (s || "").toLowerCase().replace(/\s+/g, "");
+  function render(q){
+    const nq = nrm(q);
+    const list = all.filter(p => !nq || nrm(p.name + p.brand).includes(nq)).slice(0, 80);
+    pickBox.innerHTML = list.length ? list.map(p => {
+      const added = watch.has(p.id);
+      return `<button class="watch-pick-row" data-k="${esc2(p.id)}" ${added ? "disabled" : ""}>
+        <span><b>${esc2(p.name)}</b> <span style="color:var(--muted);font-size:12px">${esc2(p.brand)}</span>${haveData.has(p.id) ? ' <span class="ml-tag">시세 있음</span>' : ''}</span>
+        ${added ? '<span class="wp-added">추가됨</span>' : '<span class="wp-add">+ 추가</span>'}</button>`;
+    }).join("") : `<div class="empty-state" style="padding:16px">검색 결과가 없어요 🙂</div>`;
+    pickBox.querySelectorAll(".watch-pick-row").forEach(b => b.onclick = async () => {
+      if (b.disabled) return;
+      await addWatch(b.dataset.k);
+      watch.add(b.dataset.k);
+      render(si.value);
+      renderHomeWatch();
+    });
+  }
+  render("");
+  si.addEventListener("input", () => render(si.value));
+  setTimeout(() => si.focus(), 50);
 }
 async function renderHomeCal(){
   const box = document.getElementById("homeCalFeed"); if (!box || !sb) return;

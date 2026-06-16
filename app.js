@@ -42,15 +42,27 @@ function findPerfume(id){ return PERFUMES.find(x => x.id === id) || (window.__ap
 /* 이미지 캐시 (세션 유지 → API 호출 절약). 네이버 쇼핑 이미지를 사용. */
 const imgCache = {};
 async function naverImageFor(p){
-  const q = p._api ? p.name : (p.brand ? p.brand + " " + p.name : p.name);
-  if (!q) return null;
-  if (q in imgCache) return imgCache[q];
-  try{ const s = sessionStorage.getItem("nimg:" + q); if (s !== null) return (imgCache[q] = s || null); }catch(e){}
-  const data = await naverFetch("search", { q, display: 5 });
-  const hit = data && data.items && data.items.find(i => i.image);
-  const url = (hit && hit.image) || null;
-  imgCache[q] = url;
-  try{ sessionStorage.setItem("nimg:" + q, url || ""); }catch(e){}
+  // 여러 검색어를 순서대로 시도 (소분·데칸트만 잡히는 상탈33 등 보완 + 영문명 폴백)
+  const queries = [];
+  if (p._api){ if (p.name) queries.push(p.name); }
+  else {
+    if (p.brand && p.name) queries.push(p.brand + " " + p.name);
+    const en = getEnTerm(p); if (en && en !== p.name) queries.push(en);
+    if (p.name) queries.push(p.name);
+  }
+  if (!queries.length) return null;
+  const cacheKey = queries[0];
+  if (cacheKey in imgCache) return imgCache[cacheKey];
+  try{ const s = sessionStorage.getItem("nimg:" + cacheKey); if (s) return (imgCache[cacheKey] = s); }catch(e){}
+  let url = null;
+  for (const q of queries){
+    const data = await naverFetch("search", { q, display: 20 });   // 넉넉히 받아 JUNK 필터 후에도 이미지가 남도록
+    const hit = data && data.items && data.items.find(i => i.image);
+    if (hit && hit.image){ url = hit.image; break; }
+  }
+  imgCache[cacheKey] = url;
+  // 양성 결과만 영구 캐시 → 실패 시 다음 방문에 재시도
+  try{ if (url) sessionStorage.setItem("nimg:" + cacheKey, url); }catch(e){}
   return url;
 }
 
@@ -197,6 +209,7 @@ function analyze(){
   const recs = recommend(noteScore, familyScore);
   renderRecs(recs);
   renderBaseRecs(baseNoteScore);
+  buildShareData(familyScore, layer, picks.length);
 
   const r = $("#results");
   r.classList.add("show");
@@ -637,19 +650,53 @@ function weatherRec(temp, code){
   if(temp>=7)     return {fams:["woody","spicy","aromatic"],   msg:"살짝 쌀쌀할 땐 따뜻한 우디·스파이시", emoji:"🍂"};
   return {fams:["gourmand","oriental","woody"], msg:"추운 날엔 달콤포근한 구르망·앰버", emoji:"🧣"};
 }
-async function initWeather(){
+/* 지역 목록 (위치 권한 없이 기본 제공 — 기본값 서울) */
+const REGIONS = [
+  { name:"서울", lat:37.5665, lon:126.9780 }, { name:"인천", lat:37.4563, lon:126.7052 },
+  { name:"수원", lat:37.2636, lon:127.0286 }, { name:"춘천", lat:37.8813, lon:127.7300 },
+  { name:"강릉", lat:37.7519, lon:128.8761 }, { name:"대전", lat:36.3504, lon:127.3845 },
+  { name:"청주", lat:36.6424, lon:127.4890 }, { name:"전주", lat:35.8242, lon:127.1480 },
+  { name:"광주", lat:35.1595, lon:126.8526 }, { name:"대구", lat:35.8714, lon:128.6014 },
+  { name:"울산", lat:35.5384, lon:129.3114 }, { name:"부산", lat:35.1796, lon:129.0756 },
+  { name:"창원", lat:35.2280, lon:128.6811 }, { name:"제주", lat:33.4996, lon:126.5312 },
+];
+function getRegionName(){ try{ return localStorage.getItem("region") || "서울"; }catch(e){ return "서울"; } }
+
+async function loadWeather(lat, lon, label){
   const sec=$("#weather"); if(!sec) return;
-  let lat=37.5665, lon=126.9780;
-  try{ const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:3500,maximumAge:1800000})); lat=pos.coords.latitude; lon=pos.coords.longitude; }catch(e){}
   try{
     const j=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`).then(r=>r.json());
     const temp=Math.round(j.current.temperature_2m), code=j.current.weather_code;
     const rec=weatherRec(temp,code);
-    $("#weatherHead").innerHTML=`${rec.emoji} 지금 <b>${temp}°C ${weatherText(code)}</b> · ${rec.msg}`;
+    $("#weatherHead").innerHTML=`${rec.emoji} <b>${esc(label)}</b> 지금 <b>${temp}°C ${weatherText(code)}</b> · ${rec.msg}`;
     $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,4).map(p=>pcard(p,null)).join("");
     observeImages($("#weatherGrid"));
     sec.style.display="";
+    // 상단바 날씨 칩
+    const chip=$("#weatherChip");
+    if(chip){ chip.innerHTML=`${rec.emoji} ${esc(label)} ${temp}°`; chip.style.display=""; }
   }catch(e){ sec.style.display="none"; }
+}
+function initWeather(){
+  const sel=$("#regionSel"); if(!sel) return;
+  let cur=getRegionName();
+  if(!REGIONS.some(r=>r.name===cur)) cur="서울";
+  sel.innerHTML=REGIONS.map(r=>`<option value="${esc(r.name)}"${r.name===cur?" selected":""}>${esc(r.name)}</option>`).join("");
+  const apply=name=>{ const r=REGIONS.find(x=>x.name===name)||REGIONS[0]; loadWeather(r.lat,r.lon,r.name); };
+  sel.onchange=()=>{ try{ localStorage.setItem("region", sel.value); }catch(e){} apply(sel.value); };
+  // 시작은 위치 권한 요청 없이 저장된(또는 서울) 지역으로 표시
+  apply(cur);
+  // 사용자가 직접 누를 때만 위치 권한 요청
+  const geo=$("#regionGeo");
+  if(geo) geo.onclick=()=>{
+    if(!navigator.geolocation){ return; }
+    geo.textContent="📍 확인 중…";
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ geo.textContent="📍 내 위치"; loadWeather(pos.coords.latitude, pos.coords.longitude, "내 위치"); },
+      ()=>{ geo.textContent="📍 내 위치"; },
+      { timeout:6000, maximumAge:600000 }
+    );
+  };
 }
 
 /* =========================================================================
@@ -671,6 +718,109 @@ async function initNews(){
   sec.style.display="";
   $("#newsGrid").innerHTML=data.items.map(newscard).join("");
 }
+
+/* =========================================================================
+   결과 공유 (이미지 카드 다운로드 / 사이트 공유)
+   ========================================================================= */
+let _shareData = null;
+const LAYER_SHARE = { top:"첫인상(상큼함) 중시형", middle:"개성(꽃·스파이스) 중시형", base:"잔향(깊은 마무리) 중시형" };
+function buildShareData(familyScore, layer, n){
+  const entries = Object.entries(familyScore).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){ _shareData=null; return; }
+  const max = entries[0][1] || 1;
+  // 레이어 승자 (renderLayers와 동일 기준)
+  const score = {};
+  ["top","middle","base"].forEach(L=>{ const t=Object.entries(layer[L]).sort((a,b)=>b[1]-a[1])[0]; score[L]= t? t[1]/n : 0; });
+  const winner = ["top","middle","base"].sort((a,b)=>score[b]-score[a])[0];
+  _shareData = {
+    fams: entries.slice(0,3).map(([f,v])=>{ const m=famMeta(f); return { label:m.label, emoji:m.emoji, color:m.color, pct:Math.round(v/max*100) }; }),
+    winner: LAYER_SHARE[winner] || "",
+    count: n,
+  };
+  renderSharePreview();
+}
+function renderSharePreview(){
+  const box=$("#sharePreview"); if(!box||!_shareData) return;
+  const top=_shareData.fams[0];
+  box.innerHTML = `<div class="sp-card">
+    <div class="sp-emoji">${top.emoji}</div>
+    <div class="sp-title">내 향수 취향은 <b>${esc(top.label)}</b></div>
+    <div class="sp-fams">${_shareData.fams.map(f=>`<span><b>${f.emoji} ${esc(f.label)}</b> ${f.pct}%</span>`).join("")}</div>
+    ${_shareData.winner?`<div class="sp-verdict">🎯 ${esc(_shareData.winner)}</div>`:""}
+    <div class="sp-foot">scentpedia.co.kr</div>
+  </div>`;
+}
+/* 공유용 결과 카드 SVG (1080×1350, 인스타 세로) */
+function buildResultCardSVG(d){
+  const W=1080, H=1350;
+  const f0=d.fams[0];
+  const bars = d.fams.map((f,i)=>{
+    const y=720+i*150, bw=Math.max(60, Math.round(760*f.pct/100));
+    return `<text x="90" y="${y-18}" font-size="40" font-weight="700" fill="#1a1916">${esc(f.emoji+" "+f.label)}</text>
+      <text x="990" y="${y-18}" font-size="40" font-weight="800" fill="#b14a5f" text-anchor="end">${f.pct}%</text>
+      <rect x="90" y="${y}" width="900" height="26" rx="13" fill="#f1ece4"/>
+      <rect x="90" y="${y}" width="${bw}" height="26" rx="13" fill="${f.color}"/>`;
+  }).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Pretendard, 'Apple SD Gothic Neo', sans-serif">
+    <rect width="${W}" height="${H}" fill="#ffffff"/>
+    <rect width="${W}" height="${H}" fill="url(#g)"/>
+    <defs><radialGradient id="g" cx="50%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#f5e6ea"/><stop offset="55%" stop-color="#fbf8f4"/><stop offset="100%" stop-color="#ffffff"/>
+    </radialGradient></defs>
+    <text x="90" y="130" font-size="34" font-weight="800" fill="#b14a5f" letter-spacing="2">SCENTPEDIA · 향수 취향 분석</text>
+    <text x="540" y="340" font-size="220" text-anchor="middle">${esc(f0.emoji)}</text>
+    <text x="540" y="470" font-size="54" font-weight="800" fill="#1a1916" text-anchor="middle">내 향수 취향은</text>
+    <text x="540" y="560" font-size="76" font-weight="800" fill="#b14a5f" text-anchor="middle">${esc(f0.label)}</text>
+    ${d.winner?`<text x="540" y="640" font-size="38" fill="#7c7870" text-anchor="middle">🎯 ${esc(d.winner)}</text>`:""}
+    ${bars}
+    <text x="540" y="1270" font-size="36" font-weight="700" fill="#1a1916" text-anchor="middle">나도 분석하러 가기 → scentpedia.co.kr</text>
+  </svg>`;
+}
+function svgToPngBlob(svg){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement("canvas"); c.width=1080; c.height=1350;
+      const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,1080,1350);
+      ctx.drawImage(img,0,0,1080,1350);
+      c.toBlob(b=> b?resolve(b):reject(new Error("toBlob 실패")), "image/png");
+    };
+    img.onerror=()=>reject(new Error("이미지 로드 실패"));
+    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  });
+}
+async function shareResultImage(){
+  const msg=$("#shareMsg");
+  if(!_shareData){ if(msg) msg.textContent="먼저 취향을 분석해 주세요 🙂"; return; }
+  if(msg) msg.textContent="결과 이미지를 만드는 중…";
+  try{
+    const blob=await svgToPngBlob(buildResultCardSVG(_shareData));
+    const file=new File([blob],"scentpedia-취향카드.png",{type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:"내 향수 취향", text:"Scentpedia에서 분석한 내 향수 취향! 너도 해봐 → scentpedia.co.kr" });
+      if(msg) msg.textContent="";
+    } else {
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download="scentpedia-취향카드.png"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      if(msg) msg.textContent="이미지를 저장했어요! 친구에게 공유해보세요 🎁";
+    }
+  }catch(e){ if(msg) msg.textContent="이미지 생성에 실패했어요. 화면을 캡처해 공유해 주세요 🙏"; }
+}
+async function shareSite(){
+  const msg=$("#shareMsg");
+  const url="https://scentpedia.co.kr/";
+  const data={ title:"Scentpedia · 향수 취향 찾기", text:"좋아하는 향수로 내 취향을 분석하고 향수를 추천받아요!", url };
+  try{
+    if(navigator.share){ await navigator.share(data); if(msg) msg.textContent=""; }
+    else { await navigator.clipboard.writeText(url); if(msg) msg.textContent="링크를 복사했어요! 친구에게 붙여넣기 해보세요 🔗"; }
+  }catch(e){
+    try{ await navigator.clipboard.writeText(url); if(msg) msg.textContent="링크를 복사했어요! 🔗"; }
+    catch(_){ if(msg) msg.textContent=url; }
+  }
+}
+$("#shareImgBtn")?.addEventListener("click", shareResultImage);
+$("#shareLinkBtn")?.addEventListener("click", shareSite);
 
 /* =========================================================================
    상세 모달
@@ -702,11 +852,17 @@ function openModal(p){
     ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>
+    ${p._api?"":`<button class="track-btn" id="trackBtn">📈 이 향수 시세 추적하기</button>`}
     <div class="shopbox" id="shopBox"></div>
     <div class="pricebox" id="priceBox" style="display:none"></div>
     <div class="reviewbox" id="reviewBox"></div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
+  const tb=$("#trackBtn");
+  if(tb && window.toggleWatch){
+    if(window.isWatched && window.isWatched(p.id)){ tb.classList.add("on"); tb.textContent="✓ 시세 추적 중 · 홈에서 보기"; }
+    tb.onclick=()=>window.toggleWatch(p, tb);
+  }
   if (!p._img && NAVER.enabled){
     naverImageFor(p).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }
@@ -753,9 +909,20 @@ function currentRoute(){ const h = (location.hash || "").replace(/^#\/?/, ""); r
 function showView(){
   const v = currentRoute();
   $$(".view").forEach(el => { el.style.display = (el.id === "view-" + v) ? "" : "none"; });
-  $$(".topnav a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#/" + v));
+  $$(".sidenav a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#/" + v));
   window.scrollTo(0, 0);
   observeImages(document);   // 새 화면에 보이는 카드 이미지 로딩
 }
 window.addEventListener("hashchange", showView);
 showView();
+
+/* ---------- 사이드바 (모바일 드로어) ---------- */
+(function initSidebar(){
+  const toggle=$("#navToggle"), sidebar=$("#sidebar"), backdrop=$("#sidebarBackdrop");
+  if(!toggle||!sidebar) return;
+  const open=()=>{ sidebar.classList.add("open"); if(backdrop) backdrop.classList.add("show"); };
+  const close=()=>{ sidebar.classList.remove("open"); if(backdrop) backdrop.classList.remove("show"); };
+  toggle.onclick=open;
+  if(backdrop) backdrop.onclick=close;
+  sidebar.querySelectorAll("a").forEach(a=>a.addEventListener("click", close));
+})();

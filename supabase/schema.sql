@@ -140,3 +140,19 @@ create table if not exists public.price_alerts (
 alter table public.price_alerts enable row level security;
 drop policy if exists "alerts_rw" on public.price_alerts;
 create policy "alerts_rw" on public.price_alerts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- 8) 사용자가 시세 추적을 요청한 향수 (매일 크론이 이 목록의 가격을 수집)
+--    워치리스트에 추가하거나 상세에서 '시세 추적'을 누르면 여기에 등록됨 (비회원도 가능)
+create table if not exists public.tracked_perfumes (
+  perfume_key text primary key,
+  perfume_name text,
+  query text,
+  added_at timestamptz default now()
+);
+alter table public.tracked_perfumes enable row level security;
+drop policy if exists "tracked_read" on public.tracked_perfumes;
+create policy "tracked_read"   on public.tracked_perfumes for select using (true);
+drop policy if exists "tracked_insert" on public.tracked_perfumes;
+create policy "tracked_insert" on public.tracked_perfumes for insert with check (true);
+drop policy if exists "tracked_update" on public.tracked_perfumes;
+create policy "tracked_update" on public.tracked_perfumes for update using (true);

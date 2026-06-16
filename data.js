@@ -301,6 +301,7 @@ const BRAND_EN = {
   "랑콤":"Lancôme","캐롤리나 헤레라":"Carolina Herrera","빅터앤롤프":"Viktor&Rolf","지방시":"Givenchy",
   "에르메스":"Hermès","조르지오 아르마니":"Giorgio Armani","끌로에":"Chloé","마크 제이콥스":"Marc Jacobs",
   "휴고 보스":"Hugo Boss","몽블랑":"Montblanc","불가리":"Bvlgari","아무아쥬":"Amouage",
+  "장 폴 고티에":"Jean Paul Gaultier","돌체앤가바나":"Dolce&Gabbana",
 };
 
 /* === 확장 향수 DB === */
@@ -451,4 +452,52 @@ PERFUMES.push(
   { id:"amouage-jubilation25", brand:"아무아쥬", name:"주빌레이션 25 우먼", en:"Amouage Jubilation 25 Woman", gender:"여성", price:360000, top:["orange","ylang"], middle:["rose","jasmine"], base:["patchouli","incense","myrrh"], desc:"풍성한 과일·꽃과 인센스의 화려한 향" },
   { id:"amouage-reflectionwoman", brand:"아무아쥬", name:"리플렉션 우먼", en:"Amouage Reflection Woman", gender:"여성", price:330000, top:["lychee"], middle:["jasmine","rose","tuberose"], base:["sandalwood","amber"], desc:"빛나는 화이트 플로럴" },
   { id:"amouage-honour", brand:"아무아쥬", name:"오너 우먼", en:"Amouage Honour Woman", gender:"여성", price:340000, top:["lily"], middle:["tuberose","jasmine"], base:["incense","musk","leather"], desc:"순백의 튜베로즈와 신비로운 인센스" },
+);
+
+/* === 추가 유명 향수 (누락 보완) === */
+PERFUMES.push(
+  // 아무아쥬 디아
+  { id:"amouage-diaman", brand:"아무아쥬", name:"디아 맨", en:"Amouage Dia Man", gender:"남성", price:330000, top:["bergamot","sage"], middle:["iris","cardamom"], base:["incense","guaiac","cedar"], desc:"파우더리한 아이리스와 인센스의 우아한 클래식 우디" },
+  { id:"amouage-diawoman", brand:"아무아쥬", name:"디아 우먼", en:"Amouage Dia Woman", gender:"여성", price:330000, top:["peach","rose"], middle:["iris","peony","ylang"], base:["incense","whitemusk","vetiver"], desc:"실크처럼 부드러운 파우더리 플로럴" },
+
+  // 장 폴 고티에
+  { id:"jpg-lemale", brand:"장 폴 고티에", name:"르 말", en:"Jean Paul Gaultier Le Male", gender:"남성", price:110000, top:["mint","bergamot"], middle:["lavender","cinnamon"], base:["vanilla","tonka"], desc:"민트와 바닐라의 달콤한 인기 남성향, 상반신 보틀" },
+  { id:"jpg-scandal", brand:"장 폴 고티에", name:"스캔들 EDP", en:"Jean Paul Gaultier Scandal", gender:"여성", price:120000, top:["blackcurrant","orange"], middle:["honey","jasmine"], base:["caramel","patchouli"], desc:"꿀과 파출리의 중독적인 달콤함" },
+
+  // 돌체앤가바나
+  { id:"dg-lightblue", brand:"돌체앤가바나", name:"라이트 블루", en:"Dolce&Gabbana Light Blue", gender:"여성", price:95000, top:["lemon","apple"], middle:["jasmine","rose"], base:["cedar","amber","musk"], desc:"지중해 여름 같은 상큼한 시트러스 플로럴" },
+  { id:"dg-theoneman", brand:"돌체앤가바나", name:"디 원 포 맨", en:"Dolce&Gabbana The One for Men", gender:"남성", price:110000, top:["grapefruit","basil"], middle:["cardamom","ginger"], base:["tobacco","amber","cedar"], desc:"따뜻한 담뱃잎과 스파이스의 세련된 남성향" },
+
+  // 캐롤리나 헤레라
+  { id:"ch-212men", brand:"캐롤리나 헤레라", name:"212 맨", en:"Carolina Herrera 212 Men", gender:"남성", price:110000, top:["bergamot","grapefruit","greenleaves"], middle:["sage","ginger"], base:["sandalwood","musk"], desc:"깔끔하고 도시적인 시트러스 우디" },
+
+  // 톰 포드
+  { id:"tf-ombreleather", brand:"톰 포드", name:"옴브레 레더", en:"Tom Ford Ombre Leather", gender:"유니섹스", price:230000, top:["cardamom"], middle:["leather","jasmine"], base:["amber","patchouli","oakmoss"], desc:"부드러운 가죽과 꽃, 사막 같은 우디 레더" },
+
+  // 이니시오
+  { id:"initio-rehab", brand:"이니시오", name:"리햅", en:"Initio Rehab", gender:"유니섹스", price:430000, top:["pepper"], middle:["incense"], base:["vanilla","benzoin","musk"], desc:"살냄새 같은 바닐라 머스크, 중독적인 스킨센트" },
+
+  // 퍼퓸 드 말리
+  { id:"pdm-pegasus", brand:"퍼퓸 드 말리", name:"페가수스", en:"Parfums de Marly Pegasus", gender:"남성", price:330000, top:["almond","bergamot"], middle:["jasmine"], base:["vanilla","sandalwood","amber"], desc:"고소한 아몬드와 바닐라의 우아한 향" },
+
+  // 메종 마르지엘라
+  { id:"mm-springtime", brand:"메종 마르지엘라", name:"레플리카 스프링타임 인 어 파크", en:"Maison Margiela Replica Springtime in a Park", gender:"유니섹스", price:185000, top:["pear","blackcurrant"], middle:["peony","lily"], base:["musk"], desc:"봄날 공원의 싱그러운 꽃과 풀내음" },
+
+  // 샤넬
+  { id:"chanel-allurehomme", brand:"샤넬", name:"알뤼르 옴므", en:"Chanel Allure Homme", gender:"남성", price:160000, top:["mandarin"], middle:["pepper","cedar"], base:["tonka","vanilla","vetiver"], desc:"따뜻하고 부드러운 우디, 클래식 데일리 남성향" },
+
+  // 에르메스
+  { id:"hermes-h24", brand:"에르메스", name:"아쉬 24", en:"Hermes H24", gender:"남성", price:170000, top:["sage"], middle:["greenleaves","rosemary"], base:["cedar"], desc:"메탈릭하고 그린한 모던 남성향" },
+
+  // 입생로랑
+  { id:"ysl-lhomme", brand:"입생로랑", name:"이 롬므", en:"Yves Saint Laurent L'Homme", gender:"남성", price:140000, top:["ginger","bergamot"], middle:["basil","pepper"], base:["cedar","vetiver","tonka"], desc:"진저와 우디의 깔끔하고 세련된 남성향" },
+
+  // 크리드
+  { id:"creed-aventusforher", brand:"크리드", name:"어벤투스 포 허", en:"Creed Aventus for Her", gender:"여성", price:480000, top:["apple","bergamot"], middle:["rose","violet"], base:["sandalwood","musk","amber"], desc:"어벤투스의 여성 버전, 상큼하고 당당한 향" },
+
+  // 티에리 뮈글러
+  { id:"mugler-aliengoddess", brand:"티에리 뮈글러", name:"에이리언 갓데스", en:"Mugler Alien Goddess", gender:"여성", price:150000, top:["bergamot"], middle:["jasmine"], base:["vanilla"], desc:"자스민과 바닐라의 화사하고 관능적인 향" },
+
+  // 펜할리곤스
+  { id:"pen-lordgeorge", brand:"펜할리곤스", name:"더 트래지디 오브 로드 조지", en:"Penhaligon's The Tragedy of Lord George", gender:"남성", price:330000, top:["rum"], middle:["tonka","cinnamon"], base:["amber","sandalwood","cedar"], desc:"브랜디와 통카의 따뜻하고 고급스러운 향" },
 );
