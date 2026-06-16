@@ -506,26 +506,51 @@ async function pingNaver(){
 function naverLinkBtn(q){
   return `<a class="buy-btn" href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent(q)}" target="_blank" rel="noopener nofollow sponsored">🛒 네이버 쇼핑에서 구매처·최저가 보기</a>`;
 }
-/* 모달 안에서 판매처/최저가 로딩 */
+/* 모달 안에서 판매처/최저가 로딩 (네이버 + 쿠팡) */
 async function loadShop(p){
   const box = $("#shopBox"); if (!box) return;
   const q = (p._api ? "" : p.brand + " ") + p.name;
-  if (!NAVER.enabled){ box.innerHTML = naverLinkBtn(q); return; }
-  box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
-  const data = await naverFetch("search", { q, display: 10, sort: "sim" });
-  if (!data || !data.items || !data.items.length){ box.innerHTML = naverLinkBtn(q); return; }
-  const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
-  const top = priced.slice(0, 4);
-  const min = priced[0];
-  box.innerHTML = `
-    <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
-    <div class="shop-list">${top.map(i=>`
-      <a class="shop-row" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
-        <span class="mall">${esc(i.mall)}</span>
-        <span class="t">${esc(i.title)}</span>
-        <span class="p">${pf(i.price)}</span>
-      </a>`).join("")}</div>
-    ${naverLinkBtn(q)}`;
+  // 1) 네이버 쇼핑
+  if (!NAVER.enabled){
+    box.innerHTML = naverLinkBtn(q);
+  } else {
+    box.innerHTML = `<div class="shop-loading"><span class="spinner"></span> 판매처·최저가 불러오는 중…</div>`;
+    const data = await naverFetch("search", { q, display: 10, sort: "sim" });
+    if (!data || !data.items || !data.items.length){
+      box.innerHTML = naverLinkBtn(q);
+    } else {
+      const priced = data.items.filter(i => i.price > 0).sort((a,b)=>a.price-b.price);
+      const top = priced.slice(0, 4);
+      const min = priced[0];
+      box.innerHTML = `
+        <div class="shop-h">🛒 판매처·가격 ${min?`<span class="low">최저가 ${pf(min.price)}</span>`:""}</div>
+        <div class="shop-list">${top.map(i=>`
+          <a class="shop-row" href="${esc(i.link)}" target="_blank" rel="noopener nofollow sponsored">
+            <span class="mall">${esc(i.mall)}</span>
+            <span class="t">${esc(i.title)}</span>
+            <span class="p">${pf(i.price)}</span>
+          </a>`).join("")}</div>
+        ${naverLinkBtn(q)}`;
+    }
+  }
+  // 2) 쿠팡 파트너스 버튼
+  addCoupang(box, q);
+}
+async function coupangFetch(q){
+  try{
+    const res = await fetch(`/api/coupang?q=${encodeURIComponent(q)}`);
+    if (!res.ok) throw new Error("coupang " + res.status);
+    return await res.json();
+  }catch(err){ return null; }
+}
+function addCoupang(box, q){
+  const a = document.createElement("a");
+  a.className = "buy-btn coupang";
+  a.target = "_blank"; a.rel = "noopener nofollow sponsored";
+  a.href = `https://www.coupang.com/np/search?q=${encodeURIComponent(q)}`;
+  a.textContent = "🚀 쿠팡에서 최저가 보기";
+  box.appendChild(a);
+  coupangFetch(q).then(d => { if (d && d.url) a.href = d.url; });
 }
 
 /* =========================================================================

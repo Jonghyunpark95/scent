@@ -209,6 +209,8 @@ section{padding:34px 0}
 .notelist .lyr .ns .n{font-size:13px;font-weight:600;background:var(--cream);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
 .buy-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:14px;border-radius:12px;background:#03c75a;color:#fff;font-weight:700;font-size:15px;text-decoration:none;transition:.15s}
 .buy-btn:hover{background:#02b350}
+.buy-btn.coupang{background:#e52528}
+.buy-btn.coupang:hover{background:#c91f22}
 
 /* 판매처/최저가 (네이버 쇼핑) */
 .shopbox{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
