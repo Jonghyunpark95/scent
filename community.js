@@ -13,6 +13,7 @@ const esc2 = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&am
 function initCommunity(){
   if (!window.supabase || !window.supabase.createClient) return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  renderHomeChart(); renderHomeCal();
   sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); });
   sb.auth.onAuthStateChange((_e, session) => {
     ME = (session && session.user) || null; renderAuthSlot();
@@ -297,6 +298,29 @@ function chartSVG(pts, target){
   const dots = pts.map((p,i)=>`<circle cx="${sx(i).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3" fill="#b14a5f"/>`).join("");
   const tline = target ? `<line x1="${pad}" y1="${sy(target).toFixed(1)}" x2="${W-pad}" y2="${sy(target).toFixed(1)}" stroke="#3fae6a" stroke-dasharray="5 4" stroke-width="1.5"/>` : "";
   return `<svg viewBox="0 0 ${W} ${H}" class="pc-svg" preserveAspectRatio="none">${pts.length>1?`<polyline points="${line}" fill="none" stroke="#b14a5f" stroke-width="2"/>`:""}${dots}${tline}</svg>`;
+}
+
+/* =========================================================================
+   홈 대시보드 — 도손 시세 쇼케이스 + 캘린더 미리보기
+   ========================================================================= */
+async function renderHomeChart(){
+  const box = document.getElementById("homeChart"); if (!box || !sb) return;
+  const card = document.getElementById("homeChartCard");
+  const { data } = await sb.from("price_history").select("collected_on,price").eq("perfume_key", "diptyque-doson").order("collected_on");
+  if (!data || !data.length){ if (card) card.style.display = "none"; return; }
+  const pts = data.map(d => ({ x: d.collected_on, y: d.price }));
+  const cur = pts[pts.length - 1].y, first = pts[0].y;
+  const diff = first ? Math.round((cur - first) / first * 100) : 0;
+  box.innerHTML = chartSVG(pts, null);
+  const msg = document.getElementById("homeChartMsg");
+  if (msg) msg.innerHTML = `현재 시세 <b>${won2(cur)}</b> · 최근 ${pts.length}일 ${diff <= 0 ? `<b style="color:#3fae6a">${Math.abs(diff)}% 하락</b> 🔻 — 살 타이밍?` : `<b style="color:#c0392b">${diff}% 상승</b> 🔺`}`;
+}
+async function renderHomeCal(){
+  const box = document.getElementById("homeCalFeed"); if (!box || !sb) return;
+  const { data } = await sb.from("diary").select("worn_on,perfume_name,nickname").order("worn_on", { ascending: false }).limit(5);
+  box.innerHTML = (data && data.length)
+    ? data.map(d => `<div class="home-cal-row"><span class="d-date">${(d.worn_on||"").slice(5)}</span> <b>${esc2(d.perfume_name)}</b> <span class="d-nick">${esc2(d.nickname||"익명")}</span></div>`).join("")
+    : `<div class="empty-state" style="padding:10px">아직 기록이 없어요</div>`;
 }
 
 // supabase-js 로드 이후 초기화

@@ -26,6 +26,8 @@ const TRACK = [
   { key: "narciso-poudree", q: "나르시소 로드리게즈 포 허 푸드레" },
   { key: "versace-eros", q: "베르사체 에로스" },
   { key: "lancome-lveb", q: "랑콤 라 비 에 벨" },
+  { key: "diptyque-doson", q: "딥디크 도손" },
+  { key: "amouage-interludeman", q: "아무아쥬 인터루드 맨" },
 ];
 
 export default async function handler(req, res) {

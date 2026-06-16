@@ -382,6 +382,25 @@ function renderFeatured(){
   observeImages(rail);
 }
 
+/* 최근 본 향수 (localStorage) */
+function pushRecent(p){
+  if (!p || p._api) return;   // 내장 향수만 (새로고침 후 복원 가능)
+  try{
+    let a = JSON.parse(localStorage.getItem("recent") || "[]");
+    a = a.filter(x => x !== p.id); a.unshift(p.id); a = a.slice(0, 12);
+    localStorage.setItem("recent", JSON.stringify(a));
+  }catch(e){}
+}
+function renderRecent(){
+  const wrap = $("#recentWrap"), rail = $("#recentRail"); if (!wrap || !rail) return;
+  let a = []; try{ a = JSON.parse(localStorage.getItem("recent") || "[]"); }catch(e){}
+  const ps = a.map(id => PERFUMES.find(x => x.id === id)).filter(Boolean);
+  if (!ps.length){ wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  rail.innerHTML = ps.map(fcard).join("");
+  observeImages(rail);
+}
+
 /* =========================================================================
    향수 백과사전 검색 (내장 DB + RapidAPI)
    ========================================================================= */
@@ -675,6 +694,7 @@ function openModal(p){
   loadShop(p);
   if (window.renderPriceChart) window.renderPriceChart(p);
   if (window.renderReviews) window.renderReviews(p);
+  pushRecent(p); renderRecent();
 }
 function closeModal(){ $("#modal").classList.remove("open"); }
 $("#modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
@@ -702,6 +722,9 @@ function fillQuick(){
 fillQuick();
 renderChips();
 renderFeatured();
+renderRecent();
+const _doSon = $("#doSonOpen");
+if (_doSon) _doSon.onclick = e => { e.preventDefault(); const p = PERFUMES.find(x=>x.id==="diptyque-doson"); if (p) openModal(p); };
 initBrands();
 pingAPI();
 initWeather();

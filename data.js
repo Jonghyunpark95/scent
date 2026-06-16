@@ -300,7 +300,7 @@ const BRAND_EN = {
   "퍼퓸 드 말리":"Parfums de Marly","이니시오":"Initio Parfums Privés","제르조프":"Xerjoff","티에리 뮈글러":"Mugler",
   "랑콤":"Lancôme","캐롤리나 헤레라":"Carolina Herrera","빅터앤롤프":"Viktor&Rolf","지방시":"Givenchy",
   "에르메스":"Hermès","조르지오 아르마니":"Giorgio Armani","끌로에":"Chloé","마크 제이콥스":"Marc Jacobs",
-  "휴고 보스":"Hugo Boss","몽블랑":"Montblanc","불가리":"Bvlgari",
+  "휴고 보스":"Hugo Boss","몽블랑":"Montblanc","불가리":"Bvlgari","아무아쥬":"Amouage",
 };
 
 /* === 확장 향수 DB === */
@@ -444,4 +444,11 @@ PERFUMES.push(
   // 불가리
   { id:"bvlgari-maninblack", brand:"불가리", name:"맨 인 블랙", en:"Bvlgari Man in Black", gender:"남성", price:120000, top:["rum"], middle:["tuberose","leather"], base:["tonka","benzoin","amber"], desc:"럼과 가죽의 강렬한 남성향" },
   { id:"bvlgari-omnia", brand:"불가리", name:"옴니아 크리스탈린", en:"Bvlgari Omnia Crystalline", gender:"여성", price:110000, top:["tea"], middle:["lily","lotus"], base:["musk","sandalwood","cedar"], desc:"대나무와 연꽃의 맑고 투명한 향" },
+
+  // 아무아쥬
+  { id:"amouage-reflectionman", brand:"아무아쥬", name:"리플렉션 맨", en:"Amouage Reflection Man", gender:"남성", price:330000, top:["rosemary","pinkpepper"], middle:["jasmine","ylang"], base:["sandalwood","cedar","vetiver"], desc:"깨끗하고 우아한 화이트 플로럴 우디" },
+  { id:"amouage-interludeman", brand:"아무아쥬", name:"인터루드 맨", en:"Amouage Interlude Man", gender:"남성", price:360000, top:["bergamot","pepper"], middle:["incense","amber"], base:["leather","oud","sandalwood"], desc:"스모키한 인센스와 가죽의 강렬한 카오스" },
+  { id:"amouage-jubilation25", brand:"아무아쥬", name:"주빌레이션 25 우먼", en:"Amouage Jubilation 25 Woman", gender:"여성", price:360000, top:["orange","ylang"], middle:["rose","jasmine"], base:["patchouli","incense","myrrh"], desc:"풍성한 과일·꽃과 인센스의 화려한 향" },
+  { id:"amouage-reflectionwoman", brand:"아무아쥬", name:"리플렉션 우먼", en:"Amouage Reflection Woman", gender:"여성", price:330000, top:["lychee"], middle:["jasmine","rose","tuberose"], base:["sandalwood","amber"], desc:"빛나는 화이트 플로럴" },
+  { id:"amouage-honour", brand:"아무아쥬", name:"오너 우먼", en:"Amouage Honour Woman", gender:"여성", price:340000, top:["lily"], middle:["tuberose","jasmine"], base:["incense","musk","leather"], desc:"순백의 튜베로즈와 신비로운 인센스" },
 );

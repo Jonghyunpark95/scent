@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -53,6 +53,25 @@
       <a href="#featured">💰 실시간 시세·가품 주의</a>
       <a href="#community">💬 향수 커뮤니티</a>
       <a href="#community">📅 향수 캘린더</a>
+    </div>
+  </section>
+
+  <!-- 홈 대시보드 -->
+  <section id="home">
+    <div class="home-grid">
+      <div class="card pad home-chart" id="homeChartCard">
+        <div class="home-h">📈 실시간 시세 · <b>딥디크 도손</b> <a href="#" id="doSonOpen" class="home-more">자세히 →</a></div>
+        <div id="homeChart"></div>
+        <div class="home-chart-msg" id="homeChartMsg"></div>
+      </div>
+      <div class="card pad home-cal">
+        <div class="home-h">📅 향수 캘린더 <a href="#community" class="home-more">더보기 →</a></div>
+        <div id="homeCalFeed"></div>
+      </div>
+    </div>
+    <div id="recentWrap" style="display:none;margin-top:30px">
+      <div class="sec-h"><span class="num">🕘 최근</span><h2>최근 본 향수</h2></div>
+      <div class="featured-rail" id="recentRail"></div>
     </div>
   </section>
 
@@ -197,9 +216,9 @@
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=16"></script>
-<script src="app.js?v=16"></script>
+<script src="data.js?v=17"></script>
+<script src="app.js?v=17"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="community.js?v=16"></script>
+<script src="community.js?v=17"></script>
 </body>
 </html>
