@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -52,6 +52,13 @@
     <div class="sec-h"><span class="num">🔥 인기</span><h2>지금 사랑받는 향수</h2>
       <p>실제 제품 사진 · 눌러서 노트 보기</p></div>
     <div class="featured-rail" id="featuredRail"></div>
+  </section>
+
+  <!-- 오늘 날씨 맞춤 추천 -->
+  <section id="weather" style="display:none">
+    <div class="sec-h"><span class="num">🌤️ 오늘</span><h2>날씨 맞춤 추천</h2>
+      <p id="weatherHead"></p></div>
+    <div class="grid" id="weatherGrid"></div>
   </section>
 
   <!-- STEP 1 -->
@@ -134,6 +141,13 @@
     <div class="grid" id="diffGrid"></div>
   </section>
 
+  <!-- 향수 팝업·이벤트 소식 -->
+  <section id="news" style="display:none">
+    <div class="sec-h"><span class="num">🗞️ 소식</span><h2>향수 팝업·이벤트 소식</h2>
+      <p>네이버 최신 글</p></div>
+    <div class="news-list" id="newsGrid"></div>
+  </section>
+
   <!-- 백과사전 -->
   <section id="encyclopedia">
     <div class="sec-h"><span class="num">백과사전</span><h2>향수 백과사전 검색</h2>
@@ -162,7 +176,7 @@
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="data.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

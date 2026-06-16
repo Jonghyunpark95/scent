@@ -579,6 +579,58 @@ async function loadDiffusers(brand){
 }
 
 /* =========================================================================
+   오늘 날씨 맞춤 추천 (Open-Meteo · 키 불필요)
+   ========================================================================= */
+function perfumesByFamilies(fams, n){
+  return PERFUMES.map(p=>{ let s=0; allNotes(p).forEach(k=>{ if(fams.includes(fam(k))) s++; }); return {p,s}; })
+    .filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0, n).map(x=>x.p);
+}
+function weatherText(c){ if(c===0)return"맑음"; if(c<=3)return"구름 조금"; if(c<=48)return"안개"; if(c<=67)return"비"; if(c<=77)return"눈"; if(c<=82)return"소나기"; return"천둥번개"; }
+function weatherRec(temp, code){
+  const rain=(code>=51&&code<=67)||(code>=80&&code<=82)||code>=95, snow=code>=71&&code<=77;
+  if(snow)        return {fams:["gourmand","oriental","woody"], msg:"포근하게 감싸주는 따뜻한 향이 어울려요", emoji:"❄️"};
+  if(rain)        return {fams:["woody","oriental","aromatic"], msg:"차분하고 깊은 우디·인센스 향이 좋아요", emoji:"🌧️"};
+  if(temp>=27)    return {fams:["citrus","aquatic","green"],   msg:"더운 날엔 청량하고 시원한 향!", emoji:"☀️"};
+  if(temp>=17)    return {fams:["floral","fruity","green"],    msg:"산뜻하고 화사한 향이 잘 맞아요", emoji:"🌤️"};
+  if(temp>=7)     return {fams:["woody","spicy","aromatic"],   msg:"살짝 쌀쌀할 땐 따뜻한 우디·스파이시", emoji:"🍂"};
+  return {fams:["gourmand","oriental","woody"], msg:"추운 날엔 달콤포근한 구르망·앰버", emoji:"🧣"};
+}
+async function initWeather(){
+  const sec=$("#weather"); if(!sec) return;
+  let lat=37.5665, lon=126.9780;
+  try{ const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,maximumAge:600000})); lat=pos.coords.latitude; lon=pos.coords.longitude; }catch(e){}
+  try{
+    const j=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`).then(r=>r.json());
+    const temp=Math.round(j.current.temperature_2m), code=j.current.weather_code;
+    const rec=weatherRec(temp,code);
+    $("#weatherHead").innerHTML=`${rec.emoji} 지금 <b>${temp}°C ${weatherText(code)}</b> · ${rec.msg}`;
+    $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,4).map(p=>pcard(p,null)).join("");
+    observeImages($("#weatherGrid"));
+    sec.style.display="";
+  }catch(e){ sec.style.display="none"; }
+}
+
+/* =========================================================================
+   향수 팝업·이벤트 소식 (네이버 블로그 검색)
+   ========================================================================= */
+function newscard(it){
+  const d = (it.date && it.date.length===8) ? `${it.date.slice(0,4)}.${it.date.slice(4,6)}.${it.date.slice(6,8)}` : "";
+  return `<a class="ncard" href="${esc(it.link)}" target="_blank" rel="noopener">
+    <div class="ntitle">${esc(it.title)}</div>
+    <div class="ndesc">${esc(it.desc)}</div>
+    <div class="nmeta">${esc(it.source)}${d?" · "+d:""}</div>
+  </a>`;
+}
+async function initNews(){
+  const sec=$("#news"); if(!sec) return;
+  if(!NAVER.enabled){ sec.style.display="none"; return; }
+  let data; try{ data=await fetch("/api/news?q="+encodeURIComponent("향수 팝업스토어")).then(r=>r.json()); }catch(e){ data=null; }
+  if(!data || !data.items || !data.items.length){ sec.style.display="none"; return; }
+  sec.style.display="";
+  $("#newsGrid").innerHTML=data.items.map(newscard).join("");
+}
+
+/* =========================================================================
    상세 모달
    ========================================================================= */
 function openModal(p){
@@ -644,4 +696,5 @@ renderChips();
 renderFeatured();
 initBrands();
 pingAPI();
-pingNaver().then(initDiffusers);
+initWeather();
+pingNaver().then(()=>{ initDiffusers(); initNews(); });
