@@ -283,6 +283,45 @@ footer a{color:var(--accent);text-decoration:none}
 .rv-stars-input span{padding:2px 4px;transition:transform .1s}
 .rv-stars-input span:hover{transform:scale(1.15)}
 
+/* 커뮤니티 게시판 */
+.comm-top{display:flex;justify-content:flex-end;margin-bottom:14px;min-height:8px}
+.comm-top .btn{padding:11px 20px;font-size:14px}
+#postList{display:grid;gap:8px}
+.post-row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.14s}
+.post-row:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.post-t{font-weight:700;font-size:15px}
+.post-m{font-size:12px;color:var(--muted);margin-top:4px}
+.post-body{font-size:14.5px;line-height:1.7;color:var(--ink-soft);white-space:pre-wrap;margin-bottom:8px}
+.post-del{font-size:12px;color:#c0392b;background:#fdeaea;border:0;border-radius:8px;padding:6px 12px;cursor:pointer;margin-bottom:8px}
+.cmts{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.cmts h5{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.cmt{font-size:13.5px;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.cmt b{color:var(--ink);margin-right:6px}
+.cmt-write{display:flex;gap:8px;margin-top:12px}
+.cmt-write .auth-in{flex:1}
+.cmt-write .btn{padding:0 18px}
+
+/* 향수 캘린더 */
+.diary-write{margin-bottom:18px}
+.diary-pub{display:flex;align-items:center;gap:7px;font-size:13.5px;color:var(--muted);margin:2px 0 12px}
+.diary-pub input{width:16px;height:16px}
+#diaryFeed{display:grid;gap:10px}
+.diary-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 15px;font-size:14px}
+.diary-item .d-date{font-size:12px;font-weight:700;color:var(--accent);margin-right:6px}
+.diary-item .d-nick{font-size:12px;color:var(--muted)}
+.diary-item .d-memo{font-size:13px;color:var(--ink-soft);margin-top:5px}
+
+/* 가격 추이 차트 */
+.pricebox{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.pc-h{font-weight:800;font-size:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pc-cur{font-size:12.5px;font-weight:800;color:#fff;background:var(--ink);padding:3px 10px;border-radius:999px}
+.pc-svg{width:100%;height:120px;background:var(--cream);border:1px solid var(--line);border-radius:12px}
+.pc-target{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13.5px;font-weight:700;flex-wrap:wrap}
+.pc-target input{flex:1;min-width:120px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit}
+.pc-target .btn{padding:10px 16px;font-size:14px}
+.pc-msg{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.5}
+.pc-msg b{color:var(--accent)}
+
 /* 소식 카드 */
 .news-list{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 @media(max-width:640px){.news-list{grid-template-columns:1fr}}

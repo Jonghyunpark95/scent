@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -30,6 +30,7 @@
       <a href="#start">취향 분석</a>
       <a href="#brands">브랜드별</a>
       <a href="#diffusers">디퓨저</a>
+      <a href="#community">커뮤니티</a>
       <a href="#encyclopedia">백과사전</a>
     </nav>
     <span id="authSlot" class="auth-slot"></span>
@@ -149,6 +150,18 @@
     <div class="news-list" id="newsGrid"></div>
   </section>
 
+  <!-- 커뮤니티 -->
+  <section id="community">
+    <div class="sec-h"><span class="num">💬 커뮤니티</span><h2>향수 이야기</h2>
+      <p>구매평 너머의 수다 · 컬렉션 자랑 · 향수 캘린더</p></div>
+    <div class="brand-tabs" id="commTabs">
+      <button class="on" data-b="free">자유게시판</button>
+      <button data-b="collection">내 컬렉션 자랑</button>
+      <button data-b="diary">향수 캘린더</button>
+    </div>
+    <div id="commBody"></div>
+  </section>
+
   <!-- 백과사전 -->
   <section id="encyclopedia">
     <div class="sec-h"><span class="num">백과사전</span><h2>향수 백과사전 검색</h2>
@@ -177,9 +190,9 @@
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=13"></script>
-<script src="app.js?v=13"></script>
+<script src="data.js?v=14"></script>
+<script src="app.js?v=14"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="community.js?v=13"></script>
+<script src="community.js?v=14"></script>
 </body>
 </html>

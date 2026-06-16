@@ -665,6 +665,7 @@ function openModal(p){
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>
     <div class="shopbox" id="shopBox"></div>
+    <div class="pricebox" id="priceBox" style="display:none"></div>
     <div class="reviewbox" id="reviewBox"></div>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
@@ -672,6 +673,7 @@ function openModal(p){
     naverImageFor(p).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }
   loadShop(p);
+  if (window.renderPriceChart) window.renderPriceChart(p);
   if (window.renderReviews) window.renderReviews(p);
 }
 function closeModal(){ $("#modal").classList.remove("open"); }
