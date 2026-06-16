@@ -28,6 +28,7 @@ const TRACK = [
   { key: "lancome-lveb", q: "랑콤 라 비 에 벨" },
   { key: "diptyque-doson", q: "딥디크 도손" },
   { key: "amouage-interludeman", q: "아무아쥬 인터루드 맨" },
+  { key: "ll-another13", q: "르라보 어나더 13" },
 ];
 
 export default async function handler(req, res) {

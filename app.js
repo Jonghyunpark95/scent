@@ -742,8 +742,6 @@ fillQuick();
 renderChips();
 renderFeatured();
 renderRecent();
-const _doSon = $("#doSonOpen");
-if (_doSon) _doSon.onclick = e => { e.preventDefault(); const p = PERFUMES.find(x=>x.id==="diptyque-doson"); if (p) openModal(p); };
 initBrands();
 pingAPI();
 initWeather();

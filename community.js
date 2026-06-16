@@ -13,7 +13,8 @@ const esc2 = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&am
 function initCommunity(){
   if (!window.supabase || !window.supabase.createClient) return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-  renderHomeChart(); renderHomeCal();
+  renderHomeWatch(); renderHomeCal();
+  const wa = document.getElementById("watchAdd"); if (wa) wa.onclick = openWatchPicker;
   sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); });
   sb.auth.onAuthStateChange((_e, session) => {
     ME = (session && session.user) || null; renderAuthSlot();
@@ -339,17 +340,43 @@ function mountChart(container, pts, target){
 /* =========================================================================
    홈 대시보드 — 도손 시세 쇼케이스 + 캘린더 미리보기
    ========================================================================= */
-async function renderHomeChart(){
-  const box = document.getElementById("homeChart"); if (!box || !sb) return;
-  const card = document.getElementById("homeChartCard");
-  const { data } = await sb.from("price_history").select("collected_on,price").eq("perfume_key", "diptyque-doson").order("collected_on");
-  if (!data || !data.length){ if (card) card.style.display = "none"; return; }
-  const pts = data.map(d => ({ x: d.collected_on, y: d.price }));
-  const cur = pts[pts.length - 1].y, first = pts[0].y;
-  const diff = first ? Math.round((cur - first) / first * 100) : 0;
-  mountChart(box, pts, null);
-  const msg = document.getElementById("homeChartMsg");
-  if (msg) msg.innerHTML = `현재 시세 <b>${won2(cur)}</b> · 최근 ${pts.length}일 ${diff <= 0 ? `<b style="color:#3fae6a">${Math.abs(diff)}% 하락</b> 🔻 — 살 타이밍?` : `<b style="color:#c0392b">${diff}% 상승</b> 🔺`}`;
+/* 내 시세 워치리스트 (localStorage, 기본=르라보 어나더 13) */
+function pname(k){ const p = (typeof PERFUMES !== "undefined") && PERFUMES.find(x => x.id === k); return p ? p.name : k; }
+function getWatch(){ try{ let a = JSON.parse(localStorage.getItem("watch") || "null"); return (Array.isArray(a) && a.length) ? a : ["ll-another13"]; }catch(e){ return ["ll-another13"]; } }
+function setWatch(a){ try{ localStorage.setItem("watch", JSON.stringify(a)); }catch(e){} }
+async function renderHomeWatch(){
+  const list = document.getElementById("watchList"); if (!list || !sb) return;
+  const watch = getWatch();
+  const { data } = await sb.from("price_history").select("perfume_key,price,collected_on").in("perfume_key", watch).order("collected_on");
+  const byKey = {}; (data || []).forEach(r => { (byKey[r.perfume_key] = byKey[r.perfume_key] || []).push({ x: r.collected_on, y: r.price }); });
+  list.innerHTML = watch.map(k => {
+    const pts = byKey[k] || [], name = pname(k);
+    if (!pts.length) return `<div class="watch-item"><div class="watch-h"><b>${esc2(name)}</b><span class="watch-x" data-k="${esc2(k)}">✕</span></div><div class="empty-state" style="padding:8px;font-size:12px">시세 수집중… 매일 업데이트돼요</div></div>`;
+    const cur = pts[pts.length-1].y, first = pts[0].y, diff = first ? Math.round((cur-first)/first*100) : 0;
+    return `<div class="watch-item"><div class="watch-h"><b>${esc2(name)}</b>
+      <span class="watch-cur">${won2(cur)} <small style="color:${diff<=0?'#3fae6a':'#c0392b'}">${diff<=0?'▼':'▲'}${Math.abs(diff)}%</small></span>
+      <span class="watch-x" data-k="${esc2(k)}">✕</span></div>
+      <div class="watch-chart" data-k="${esc2(k)}"></div></div>`;
+  }).join("");
+  watch.forEach(k => { const pts = byKey[k]; if (pts && pts.length){ const el = list.querySelector(`.watch-chart[data-k="${k}"]`); if (el) mountChart(el, pts, null); } });
+  list.querySelectorAll(".watch-x").forEach(x => x.onclick = () => { setWatch(getWatch().filter(i => i !== x.dataset.k)); renderHomeWatch(); });
+}
+async function openWatchPicker(){
+  const m = ensureModal("watchModal"); openM(m);
+  m.innerHTML = `<div class="box card pad" style="max-width:420px;position:relative"><button class="close" data-close>✕</button><h3 style="margin:0 0 12px">시세 추가</h3><div class="shop-loading"><span class="spinner"></span> 불러오는 중…</div></div>`;
+  const { data } = await sb.from("price_history").select("perfume_key");
+  const keys = [...new Set((data || []).map(r => r.perfume_key))];
+  const watch = new Set(getWatch());
+  const box = m.querySelector(".box");
+  box.innerHTML = `<button class="close" data-close>✕</button><h3 style="margin:0 0 6px">시세 추가</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">시세가 수집되는 향수예요. 누르면 홈 워치리스트에 추가됩니다.</p>
+    <div class="watch-pick">${keys.map(k => `<button class="watch-pick-row" data-k="${esc2(k)}" ${watch.has(k)?"disabled":""}>${esc2(pname(k))} ${watch.has(k)?'<span class="wp-added">추가됨</span>':'<span class="wp-add">+ 추가</span>'}</button>`).join("")}</div>`;
+  wireClose(m);
+  box.querySelectorAll(".watch-pick-row").forEach(b => b.onclick = () => {
+    if (b.disabled) return;
+    const a = getWatch(); if (!a.includes(b.dataset.k)) a.push(b.dataset.k);
+    setWatch(a); closeM(m); renderHomeWatch();
+  });
 }
 async function renderHomeCal(){
   const box = document.getElementById("homeCalFeed"); if (!box || !sb) return;
