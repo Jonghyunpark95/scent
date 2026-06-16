@@ -327,9 +327,24 @@ function initBrands(){
   renderBrand("전체");
 }
 function renderBrand(b){
-  const list = b==="전체" ? PERFUMES : PERFUMES.filter(p=>p.brand===b);
-  $("#brandGrid").innerHTML = list.map(p=>pcard(p, null)).join("");
-  observeImages($("#brandGrid"));
+  const grid = $("#brandGrid");
+  const internal = b==="전체" ? PERFUMES : PERFUMES.filter(p=>p.brand===b);
+  grid.innerHTML = internal.map(p=>pcard(p, null)).join("");
+  observeImages(grid);
+  if (b !== "전체" && API.enabled && typeof BRAND_EN !== "undefined" && BRAND_EN[b]) loadBrandExtra(b, internal);
+}
+/* 브랜드 선택 시 API(전 세계 DB)에서 해당 브랜드 향수를 추가로 로딩 */
+async function loadBrandExtra(b, internal){
+  const grid = $("#brandGrid");
+  grid.insertAdjacentHTML("beforeend", `<div class="empty-state" id="brandMore"><span class="spinner"></span> ${esc(b)}의 다른 향수 불러오는 중…</div>`);
+  const data = await apiFetch("brand", { brand: BRAND_EN[b], limit: 48 });
+  $("#brandMore")?.remove();
+  if (!data || !data.results || ($("#brandTabs button.on") && $("#brandTabs button.on").dataset.b !== b)) return;
+  const seen = new Set(internal.map(p=>norm(p.name)));
+  const extras = data.results.map(apiToPerfume).filter(p=>{ const n=norm(p.name); if(!n||seen.has(n)) return false; seen.add(n); return true; });
+  if (!extras.length) return;
+  grid.insertAdjacentHTML("beforeend", extras.map(p=>pcard(p, null)).join(""));
+  observeImages(grid);
 }
 
 /* =========================================================================
@@ -498,7 +513,8 @@ function openModal(p){
     </div>
     ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
-    <div class="notelist">${layerHTML}</div>`;
+    <div class="notelist">${layerHTML}</div>
+    <a class="buy-btn" href="https://search.shopping.naver.com/search/all?query=${encodeURIComponent((p._api?"":p.brand+" ")+p.name)}" target="_blank" rel="noopener">🛒 네이버 쇼핑에서 구매처·최저가 보기</a>`;
   $("#modal").classList.add("open");
   $("#modalClose").onclick = closeModal;
   if (!p._img && API.enabled){

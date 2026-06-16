@@ -45,6 +45,26 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, results: hits.map(toClean) });
     }
 
+    if (action === "brand") {
+      const brand = (req.query.brand || "").toString().trim();
+      const limit = Math.min(parseInt(req.query.limit, 10) || 40, 60);
+      if (!brand) return res.status(200).json({ ok: true, results: [] });
+
+      const r = await fetch(`https://${HOST}/multi-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-RapidAPI-Key": KEY, "X-RapidAPI-Host": HOST },
+        body: JSON.stringify({
+          queries: [{ indexUid: "fragrances", q: "", filter: [`"brand.name"="${brand.replace(/"/g, '')}"`], limit, offset: 0 }],
+        }),
+      });
+      if (!r.ok) return res.status(200).json({ ok: false, status: r.status, results: [] });
+
+      const raw = await r.json();
+      const hits = (raw.results && raw.results[0] && raw.results[0].hits) || [];
+      const total = (raw.results && raw.results[0] && raw.results[0].estimatedTotalHits) || hits.length;
+      return res.status(200).json({ ok: true, total, results: hits.map(toClean) });
+    }
+
     return res.status(400).json({ ok: false, reason: "unknown_action" });
   } catch (err) {
     return res.status(200).json({ ok: false, reason: "fetch_error", message: String(err), results: [] });

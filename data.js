@@ -290,14 +290,27 @@ const EN_NAMES = {
   "mfk-baccarat":"Baccarat Rouge 540","glossier-you":"Glossier You",
 };
 
+/* === 브랜드 영문명 (RapidAPI brand.name 필터용 → 브랜드별 향수 대량 로딩) === */
+const BRAND_EN = {
+  "조 말론":"Jo Malone London","르 라보":"Le Labo","디올":"Dior","샤넬":"Chanel","톰 포드":"Tom Ford",
+  "메종 마르지엘라":"Maison Martin Margiela","바이레도":"Byredo","딥디크":"Diptyque","입생로랑":"Yves Saint Laurent",
+  "크리드":"Creed","펜할리곤스":"Penhaligon's","아쿠아 디 파르마":"Acqua di Parma","베르사체":"Versace",
+  "캘빈클라인":"Calvin Klein","나르시소 로드리게즈":"Narciso Rodriguez","메종 프란시스 커정":"Maison Francis Kurkdjian",
+  "글로시에":"Glossier","킬리안":"By Kilian","구찌":"Gucci","프라다":"Prada","파코라반":"Paco Rabanne",
+  "퍼퓸 드 말리":"Parfums de Marly","이니시오":"Initio Parfums Privés","제르조프":"Xerjoff","티에리 뮈글러":"Mugler",
+  "랑콤":"Lancôme","캐롤리나 헤레라":"Carolina Herrera","빅터앤롤프":"Viktor&Rolf","지방시":"Givenchy",
+  "에르메스":"Hermès","조르지오 아르마니":"Giorgio Armani","끌로에":"Chloé","마크 제이콥스":"Marc Jacobs",
+  "휴고 보스":"Hugo Boss","몽블랑":"Montblanc","불가리":"Bvlgari",
+};
+
 /* === 확장 향수 DB === */
 PERFUMES.push(
   // 바이 킬리안
-  { id:"kilian-gggb", brand:"바이 킬리안", name:"굿 걸 곤 배드", en:"By Kilian Good Girl Gone Bad", gender:"여성", price:330000, top:["peach"], middle:["tuberose","jasmine","rose"], base:["cedar","musk"], desc:"관능적인 하얀 꽃들의 우아한 향" },
-  { id:"kilian-angels", brand:"바이 킬리안", name:"엔젤스 셰어", en:"By Kilian Angels Share", gender:"유니섹스", price:390000, top:["cinnamon"], middle:["rum","vanilla","tonka"], base:["sandalwood","oakmoss"], desc:"코냑과 바닐라의 따뜻하고 달콤한 향" },
-  { id:"kilian-love", brand:"바이 킬리안", name:"러브 돈 비 샤이", en:"By Kilian Love Dont Be Shy", gender:"여성", price:330000, top:["bergamot","orangeblossom"], middle:["honey"], base:["vanilla","caramel","musk"], desc:"마시멜로 같은 달콤하고 포근한 향" },
-  { id:"kilian-blackphantom", brand:"바이 킬리안", name:"블랙 팬텀", en:"By Kilian Black Phantom", gender:"유니섹스", price:390000, top:["coffee"], middle:["rum","almond"], base:["caramel","sandalwood"], desc:"커피·럼·카라멜의 해적 보물 같은 향" },
-  { id:"kilian-rolling", brand:"바이 킬리안", name:"롤링 인 러브", en:"By Kilian Rolling in Love", gender:"여성", price:330000, top:["almond"], middle:["tuberose","iris"], base:["musk","sandalwood"], desc:"보송한 아몬드와 파우더리한 흰 꽃" },
+  { id:"kilian-gggb", brand:"킬리안", name:"굿 걸 곤 배드", en:"By Kilian Good Girl Gone Bad", gender:"여성", price:330000, top:["peach"], middle:["tuberose","jasmine","rose"], base:["cedar","musk"], desc:"관능적인 하얀 꽃들의 우아한 향" },
+  { id:"kilian-angels", brand:"킬리안", name:"엔젤스 셰어", en:"By Kilian Angels Share", gender:"유니섹스", price:390000, top:["cinnamon"], middle:["rum","vanilla","tonka"], base:["sandalwood","oakmoss"], desc:"코냑과 바닐라의 따뜻하고 달콤한 향" },
+  { id:"kilian-love", brand:"킬리안", name:"러브 돈 비 샤이", en:"By Kilian Love Dont Be Shy", gender:"여성", price:330000, top:["bergamot","orangeblossom"], middle:["honey"], base:["vanilla","caramel","musk"], desc:"마시멜로 같은 달콤하고 포근한 향" },
+  { id:"kilian-blackphantom", brand:"킬리안", name:"블랙 팬텀", en:"By Kilian Black Phantom", gender:"유니섹스", price:390000, top:["coffee"], middle:["rum","almond"], base:["caramel","sandalwood"], desc:"커피·럼·카라멜의 해적 보물 같은 향" },
+  { id:"kilian-rolling", brand:"킬리안", name:"롤링 인 러브", en:"By Kilian Rolling in Love", gender:"여성", price:330000, top:["almond"], middle:["tuberose","iris"], base:["musk","sandalwood"], desc:"보송한 아몬드와 파우더리한 흰 꽃" },
 
   // 크리드
   { id:"creed-git", brand:"크리드", name:"그린 아이리쉬 트위드", en:"Creed Green Irish Tweed", gender:"남성", price:420000, top:["lemon","violet"], middle:["iris","violet"], base:["sandalwood","ambergris"], desc:"클래식 그린·플로럴 남성향의 정석" },
