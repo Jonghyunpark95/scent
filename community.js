@@ -139,7 +139,7 @@ function wireWriteForm(box, p){
 /* =========================================================================
    게시판 (자유게시판 / 컬렉션 자랑 / 향수 캘린더)
    ========================================================================= */
-let _board = "free";
+let _board = "diary";
 function todayStr(){ return new Date().toISOString().slice(0, 10); }
 function fmtDate(s){ try{ return new Date(s).toLocaleDateString("ko-KR"); }catch(e){ return ""; } }
 function ensureModal(id){

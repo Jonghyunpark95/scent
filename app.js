@@ -602,13 +602,13 @@ function weatherRec(temp, code){
 async function initWeather(){
   const sec=$("#weather"); if(!sec) return;
   let lat=37.5665, lon=126.9780;
-  try{ const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000,maximumAge:600000})); lat=pos.coords.latitude; lon=pos.coords.longitude; }catch(e){}
+  try{ const pos=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:3500,maximumAge:1800000})); lat=pos.coords.latitude; lon=pos.coords.longitude; }catch(e){}
   try{
     const j=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`).then(r=>r.json());
     const temp=Math.round(j.current.temperature_2m), code=j.current.weather_code;
     const rec=weatherRec(temp,code);
     $("#weatherHead").innerHTML=`${rec.emoji} 지금 <b>${temp}°C ${weatherText(code)}</b> · ${rec.msg}`;
-    $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,4).map(p=>pcard(p,null)).join("");
+    $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,6).map(p=>pcard(p,null)).join("");
     observeImages($("#weatherGrid"));
     sec.style.display="";
   }catch(e){ sec.style.display="none"; }
