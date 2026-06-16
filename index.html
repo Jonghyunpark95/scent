@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -25,13 +25,14 @@
 
 <header class="topbar">
   <div class="wrap">
-    <div class="logo"><span class="dot"></span> Scent<b>pedia</b></div>
+    <a href="#/home" class="logo"><span class="dot"></span> Scent<b>pedia</b></a>
     <nav class="topnav">
-      <a href="#start">취향 분석</a>
-      <a href="#brands">브랜드별</a>
-      <a href="#diffusers">디퓨저</a>
-      <a href="#community">커뮤니티</a>
-      <a href="#encyclopedia">백과사전</a>
+      <a href="#/home">홈</a>
+      <a href="#/analyze">취향 분석</a>
+      <a href="#/brands">브랜드별</a>
+      <a href="#/diffusers">디퓨저</a>
+      <a href="#/community">커뮤니티</a>
+      <a href="#/encyclopedia">백과사전</a>
     </nav>
     <span id="authSlot" class="auth-slot"></span>
   </div>
@@ -39,22 +40,27 @@
 
 <main class="wrap">
 
+<div class="view" id="view-home">
+
   <!-- HERO -->
-  <section class="hero">
+  <section class="hero hero-sm">
     <span class="kick">🧪 향수 초보도 OK · 1분 취향 분석</span>
     <h1>오늘, <span class="g">어떤 향</span>을 입을까? <span class="float">🌸</span></h1>
-    <p>좋아하는 향수만 넣으면 내 취향(탑·미들·베이스)을 분석하고,<br class="br-d">어울리는 향수·실시간 시세·구매처까지 한 번에. 향수가 처음이어도 쉽게.</p>
+    <p>내 취향 분석부터 실시간 시세·구매처·커뮤니티까지, 향수의 모든 것.</p>
     <div class="hero-cta">
-      <a href="#start" class="btn">✨ 내 취향 분석 시작</a>
-      <a href="#featured" class="btn ghost2">인기 향수 구경</a>
-    </div>
-    <div class="hero-feats">
-      <a href="#weather">🌤️ 날씨 맞춤 추천</a>
-      <a href="#featured">💰 실시간 시세·가품 주의</a>
-      <a href="#community">💬 향수 커뮤니티</a>
-      <a href="#community">📅 향수 캘린더</a>
+      <a href="#/analyze" class="btn">✨ 내 취향 분석</a>
+      <a href="#/brands" class="btn ghost2">향수 둘러보기</a>
     </div>
   </section>
+
+  <!-- 메뉴 타일 -->
+  <div class="tiles">
+    <a href="#/analyze" class="tile"><span class="t-emoji">🧪</span><b>취향 분석</b><small>1분 진단·추천</small></a>
+    <a href="#/brands" class="tile"><span class="t-emoji">🏷️</span><b>브랜드별</b><small>37개 브랜드</small></a>
+    <a href="#/diffusers" class="tile"><span class="t-emoji">🪔</span><b>디퓨저</b><small>실시간 가격</small></a>
+    <a href="#/community" class="tile"><span class="t-emoji">💬</span><b>커뮤니티</b><small>캘린더·후기</small></a>
+    <a href="#/encyclopedia" class="tile"><span class="t-emoji">📖</span><b>백과사전</b><small>향수 검색</small></a>
+  </div>
 
   <!-- 홈 대시보드 -->
   <section id="home">
@@ -65,7 +71,7 @@
         <div class="home-chart-msg" id="homeChartMsg"></div>
       </div>
       <div class="card pad home-cal">
-        <div class="home-h">📅 향수 캘린더 <a href="#community" class="home-more">더보기 →</a></div>
+        <div class="home-h">📅 향수 캘린더 <a href="#/community" class="home-more">더보기 →</a></div>
         <div id="homeCalFeed"></div>
       </div>
     </div>
@@ -88,6 +94,10 @@
       <p id="weatherHead"></p></div>
     <div class="grid" id="weatherGrid"></div>
   </section>
+
+</div><!-- /view-home -->
+
+<div class="view" id="view-analyze" style="display:none">
 
   <!-- STEP 1 -->
   <section id="start">
@@ -153,6 +163,10 @@
     </section>
   </div>
 
+</div><!-- /view-analyze -->
+
+<div class="view" id="view-brands" style="display:none">
+
   <!-- 브랜드별 -->
   <section id="brands">
     <div class="sec-h"><span class="num">둘러보기</span><h2>브랜드별 향수 모음</h2>
@@ -161,6 +175,10 @@
     <div class="grid" id="brandGrid"></div>
   </section>
 
+</div><!-- /view-brands -->
+
+<div class="view" id="view-diffusers" style="display:none">
+
   <!-- 디퓨저 (네이버 쇼핑) -->
   <section id="diffusers" style="display:none">
     <div class="sec-h"><span class="num">🪔 홈</span><h2>인기 디퓨저</h2>
@@ -168,6 +186,10 @@
     <div class="brand-tabs" id="diffTabs"></div>
     <div class="grid" id="diffGrid"></div>
   </section>
+
+</div><!-- /view-diffusers -->
+
+<div class="view" id="view-community" style="display:none">
 
   <!-- 향수 팝업·이벤트 소식 -->
   <section id="news" style="display:none">
@@ -188,6 +210,10 @@
     <div id="commBody"></div>
   </section>
 
+</div><!-- /view-community -->
+
+<div class="view" id="view-encyclopedia" style="display:none">
+
   <!-- 백과사전 -->
   <section id="encyclopedia">
     <div class="sec-h"><span class="num">백과사전</span><h2>향수 백과사전 검색</h2>
@@ -199,6 +225,8 @@
     </div>
     <div class="grid" id="encGrid" style="margin-top:16px"></div>
   </section>
+
+</div><!-- /view-encyclopedia -->
 
 </main>
 
@@ -216,9 +244,9 @@
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="data.js?v=18"></script>
+<script src="app.js?v=18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="community.js?v=17"></script>
+<script src="community.js?v=18"></script>
 </body>
 </html>

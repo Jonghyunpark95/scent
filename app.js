@@ -627,7 +627,7 @@ async function initWeather(){
     const temp=Math.round(j.current.temperature_2m), code=j.current.weather_code;
     const rec=weatherRec(temp,code);
     $("#weatherHead").innerHTML=`${rec.emoji} 지금 <b>${temp}°C ${weatherText(code)}</b> · ${rec.msg}`;
-    $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,6).map(p=>pcard(p,null)).join("");
+    $("#weatherGrid").innerHTML=perfumesByFamilies(rec.fams,4).map(p=>pcard(p,null)).join("");
     observeImages($("#weatherGrid"));
     sec.style.display="";
   }catch(e){ sec.style.display="none"; }
@@ -729,3 +729,16 @@ initBrands();
 pingAPI();
 initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); observeImages(document); });
+
+/* ---------- 페이지 라우터 (해시) ---------- */
+const ROUTES = ["home","analyze","brands","diffusers","community","encyclopedia"];
+function currentRoute(){ const h = (location.hash || "").replace(/^#\/?/, ""); return ROUTES.includes(h) ? h : "home"; }
+function showView(){
+  const v = currentRoute();
+  $$(".view").forEach(el => { el.style.display = (el.id === "view-" + v) ? "" : "none"; });
+  $$(".topnav a").forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#/" + v));
+  window.scrollTo(0, 0);
+  observeImages(document);   // 새 화면에 보이는 카드 이미지 로딩
+}
+window.addEventListener("hashchange", showView);
+showView();
