@@ -86,23 +86,41 @@ const state = { selected: [] };   // 선택한 향수 id 배열
 const input = $("#search");
 const suggest = $("#suggest");
 
+function suggestRow(p){
+  return `<div class="row" data-id="${p.id}">
+    <div class="thumb">${artHTML(p)}</div>
+    <div><b>${esc(p.name)}</b><br><small>${esc(p.brand)}${p._api?"":" · "+esc(p.gender)}</small></div>
+  </div>`;
+}
+let suggestTimer, suggestSeq = 0;
 function renderSuggest(q){
   const nq = norm(q);
   if (!nq){ suggest.classList.remove("open"); return; }
-  const hits = PERFUMES.filter(p =>
+  const local = PERFUMES.filter(p =>
     norm(p.name).includes(nq) || norm(p.brand).includes(nq)
   ).filter(p => !state.selected.includes(p.id)).slice(0, 8);
 
-  if (!hits.length){
-    suggest.innerHTML = `<div class="empty">"${esc(q)}" 검색 결과가 없어요. 다른 향수 이름으로 검색해 보세요 🙂</div>`;
-  } else {
-    suggest.innerHTML = hits.map(p => `
-      <div class="row" data-id="${p.id}">
-        <div class="thumb">${artHTML(p)}</div>
-        <div><b>${esc(p.name)}</b><br><small>${esc(p.brand)} · ${esc(p.gender)}</small></div>
-      </div>`).join("");
-  }
+  let html = local.map(suggestRow).join("");
+  if (API.enabled) html += `<div class="suggest-more" id="sugMore"><span class="spinner"></span> 더 많은 향수 찾는 중…</div>`;
+  else if (!local.length) html = `<div class="empty">"${esc(q)}" 검색 결과가 없어요 🙂</div>`;
+  suggest.innerHTML = html;
   suggest.classList.add("open");
+  if (!API.enabled) return;
+
+  // 전 세계 DB(RapidAPI)에서 추가 검색
+  clearTimeout(suggestTimer);
+  const seq = ++suggestSeq;
+  suggestTimer = setTimeout(async ()=>{
+    const data = await apiFetch("search", { q, limit: 20 });
+    if (seq !== suggestSeq) return;                 // 최신 입력만 반영
+    const more = $("#sugMore"); if (more) more.remove();
+    if (!data || !data.results) return;
+    const localNames = new Set(local.map(p=>norm(p.name)));
+    const extra = data.results.map(apiToPerfume)
+      .filter(p => !state.selected.includes(p.id) && !localNames.has(norm(p.name)));
+    if (extra.length) suggest.insertAdjacentHTML("beforeend", extra.map(suggestRow).join(""));
+    else if (!local.length) suggest.innerHTML = `<div class="empty">"${esc(q)}" 결과가 없어요 🙂</div>`;
+  }, 350);
 }
 input.addEventListener("input", e => renderSuggest(e.target.value));
 input.addEventListener("focus", e => { if (e.target.value) renderSuggest(e.target.value); });
@@ -127,7 +145,7 @@ function removePerfume(id){
 function renderChips(){
   const box = $("#chips");
   box.innerHTML = state.selected.map(id => {
-    const p = PERFUMES.find(x => x.id === id);
+    const p = findPerfume(id) || { name: id, brand: "" };
     return `<span class="chip"><b>${esc(p.name)}</b> <small>${esc(p.brand)}</small>
       <span class="x" data-id="${id}" title="삭제">✕</span></span>`;
   }).join("");
@@ -150,7 +168,7 @@ $("#quick").addEventListener("click", e => {
 $("#analyzeBtn").addEventListener("click", analyze);
 
 function analyze(){
-  const picks = state.selected.map(id => PERFUMES.find(p => p.id === id));
+  const picks = state.selected.map(findPerfume).filter(Boolean);
   if (!picks.length) return;
 
   // 1) 계열 점수 + 레이어별 계열 점수
@@ -474,14 +492,7 @@ async function apiFetch(action, params){
 async function pingAPI(){
   const data = await apiFetch("status", {});
   API.enabled = !!(data && data.configured);
-  const el = $("#apiState");
-  if (API.enabled){
-    el.classList.add("live");
-    el.querySelector("span").textContent = "실시간 향수 데이터 연결됨 · 전 세계 10만+ 향수";
-    observeImages(document);   // 이미 그려진 카드들의 실제 사진 로딩 시작
-  } else {
-    el.querySelector("span").textContent = "내장 DB 모드 (실제 사진/검색은 API 연결 후 자동 활성화)";
-  }
+  if (API.enabled) observeImages(document);   // 그려진 카드들의 실제 사진 로딩
 }
 
 /* =========================================================================
@@ -533,24 +544,6 @@ async function loadShop(p){
         ${naverLinkBtn(q)}`;
     }
   }
-  // 2) 쿠팡 파트너스 버튼
-  addCoupang(box, q);
-}
-async function coupangFetch(q){
-  try{
-    const res = await fetch(`/api/coupang?q=${encodeURIComponent(q)}`);
-    if (!res.ok) throw new Error("coupang " + res.status);
-    return await res.json();
-  }catch(err){ return null; }
-}
-function addCoupang(box, q){
-  const a = document.createElement("a");
-  a.className = "buy-btn coupang";
-  a.target = "_blank"; a.rel = "noopener nofollow sponsored";
-  a.href = `https://www.coupang.com/np/search?q=${encodeURIComponent(q)}`;
-  a.textContent = "🚀 쿠팡에서 최저가 보기";
-  box.appendChild(a);
-  coupangFetch(q).then(d => { if (d && d.url) a.href = d.url; });
 }
 
 /* =========================================================================

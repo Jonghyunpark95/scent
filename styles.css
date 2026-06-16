@@ -135,7 +135,7 @@ section{padding:34px 0}
 .fcard{scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .14s ease,box-shadow .14s ease}
 .fcard:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
 .fcard .art{aspect-ratio:1/1;background:#fff;display:grid;place-items:center;overflow:hidden}
-.fcard .art img{width:100%;height:100%;object-fit:contain;padding:10%}
+.fcard .art img{width:100%;height:100%;object-fit:contain;padding:14%}
 .fcard .finfo{padding:11px 13px 14px}
 .fcard .finfo .brand{font-size:11px;color:var(--muted);font-weight:600}
 .fcard .finfo .name{font-size:14px;font-weight:700;line-height:1.3;margin-top:2px}
@@ -179,7 +179,7 @@ section{padding:34px 0}
 .pcard{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:transform .14s ease,box-shadow .14s ease,border-color .14s}
 .pcard:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--line)}
 .pcard .art{aspect-ratio:1/1;display:grid;place-items:center;background:#fff;position:relative;overflow:hidden}
-.pcard .art img{width:100%;height:100%;object-fit:contain;padding:9%}
+.pcard .art img{width:100%;height:100%;object-fit:contain;padding:13%}
 .pcard .match{position:absolute;top:10px;left:10px;font-size:11px;font-weight:700;color:#fff;background:var(--accent);padding:4px 9px;border-radius:999px}
 .pcard .info{padding:13px 14px 15px;display:flex;flex-direction:column;gap:4px;flex:1}
 .pcard .brand{font-size:11.5px;color:var(--muted);font-weight:600;letter-spacing:.01em}
@@ -209,8 +209,6 @@ section{padding:34px 0}
 .notelist .lyr .ns .n{font-size:13px;font-weight:600;background:var(--cream);border:1px solid var(--line);padding:6px 12px;border-radius:999px}
 .buy-btn{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:14px;border-radius:12px;background:#03c75a;color:#fff;font-weight:700;font-size:15px;text-decoration:none;transition:.15s}
 .buy-btn:hover{background:#02b350}
-.buy-btn.coupang{background:#e52528}
-.buy-btn.coupang:hover{background:#c91f22}
 
 /* 판매처/최저가 (네이버 쇼핑) */
 .shopbox{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
