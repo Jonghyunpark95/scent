@@ -65,7 +65,8 @@
       <div class="hint">작성하면 홈에 노출되고 <b>/pick/주소</b>로 구글에 검색·인덱싱됩니다.</div>
       <div class="fld"><label>제목 *</label><input id="pkTitle" type="text" placeholder="예: 가을에 어울리는 우디 향수 5선"></div>
       <div class="fld"><label>한 줄 요약 (목록·미리보기에 표시)</label><input id="pkSummary" type="text" placeholder="선선해진 날씨에 딱인 따뜻한 우디 향수를 골랐어요"></div>
-      <div class="fld"><label>본문</label><textarea id="pkBody" placeholder="여기에 추천 내용을 자유롭게 작성하세요. 빈 줄로 문단을 나눌 수 있어요."></textarea></div>
+      <div class="fld"><label>본문 (요약·소개글 — 블로그 링크만 걸 거면 짧게 써도 OK)</label><textarea id="pkBody" placeholder="여기에 추천 내용을 자유롭게 작성하세요. 빈 줄로 문단을 나눌 수 있어요."></textarea></div>
+      <div class="fld"><label>외부 링크 (네이버 블로그 등 — 입력하면 '블로그에서 전문 보기' 버튼이 생겨요)</label><input id="pkLink" type="text" placeholder="https://blog.naver.com/내아이디/글번호"></div>
       <div class="fld"><label>대표 이미지 (직접 첨부)</label><input id="pkImage" type="file" accept="image/*"><img id="pkPreview" class="preview" alt="미리보기"></div>
       <div class="fld"><label>주소(slug) — 비우면 자동 생성</label><input id="pkSlug" type="text" placeholder="autumn-woody-2026"></div>
       <div class="row2">
@@ -126,6 +127,7 @@ async function savePick(){
   msg.style.color="#7c7870"; msg.textContent="저장 중…";
   const payload={
     title, summary:$("#pkSummary").value.trim(), body:$("#pkBody").value,
+    link_url:$("#pkLink").value.trim()||undefined,
     slug:$("#pkSlug").value.trim()||undefined, published:$("#pkPublished").checked,
   };
   if(pkImageData) payload.image=pkImageData;
@@ -135,7 +137,7 @@ async function savePick(){
     const j=await r.json();
     if(!j.ok){ msg.style.color="#c0392b"; msg.textContent="실패: "+(j.message||j.reason||""); return; }
     msg.style.color="#2e8b57"; msg.textContent="저장됐어요! → /pick/"+j.pick.slug;
-    $("#pkTitle").value="";$("#pkSummary").value="";$("#pkBody").value="";$("#pkSlug").value="";
+    $("#pkTitle").value="";$("#pkSummary").value="";$("#pkBody").value="";$("#pkSlug").value="";$("#pkLink").value="";
     $("#pkImage").value="";$("#pkPreview").style.display="none";pkImageData=null;
     loadPicks();
   }catch(e){ msg.style.color="#c0392b"; msg.textContent="오류: "+e; }

@@ -69,6 +69,8 @@ ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script
   .cta{margin-top:30px;text-align:center}
   .btn{display:inline-block;background:var(--accent);color:#fff;font-weight:800;padding:14px 24px;border-radius:14px;font-size:15px}
   .btn:hover{text-decoration:none;opacity:.92}
+  .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .cta+.cta{margin-top:12px}
   footer{margin-top:40px;font-size:12px;color:var(--muted);text-align:center}
 </style>
 </head>
@@ -103,7 +105,8 @@ function renderOne(pk){
     ${pk.summary ? `<div class="summary">${esc(pk.summary)}</div>` : ""}
     ${pk.image_url ? `<img class="hero" src="${esc(pk.image_url)}" alt="${esc(pk.title)}">` : ""}
     <article>${bodyHTML(pk.body)}</article>
-    <div class="cta"><a class="btn" href="${SITE}/">Scentpedia에서 내 취향 향수 찾기 →</a></div>`;
+    ${pk.link_url ? `<div class="cta"><a class="btn" href="${esc(pk.link_url)}" target="_blank" rel="noopener">📖 블로그에서 전문 보기 →</a></div>` : ""}
+    <div class="cta"><a class="btn ghost" href="${SITE}/">Scentpedia에서 내 취향 향수 찾기 →</a></div>`;
   return shell({ title, desc, url, body, jsonld, image: pk.image_url });
 }
 

@@ -69,6 +69,7 @@ module.exports = async function handler(req, res){
         summary: b.summary || null,
         body: b.body || null,
         image_url,
+        link_url: b.link_url || null,
         published: b.published !== false,
         updated_at: new Date().toISOString(),
       };

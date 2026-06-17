@@ -172,10 +172,13 @@ create table if not exists public.editor_picks (
   summary text,
   body text,
   image_url text,
+  link_url text,
   published boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+-- 이미 테이블이 있던 경우를 위한 컬럼 추가 (외부 블로그 링크)
+alter table public.editor_picks add column if not exists link_url text;
 alter table public.editor_picks enable row level security;
 drop policy if exists "picks_read" on public.editor_picks;
 create policy "picks_read" on public.editor_picks for select using (published);
