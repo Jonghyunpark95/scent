@@ -151,8 +151,8 @@ async function doSocial(provider){
   const msg = document.getElementById("authMsg");
   if (msg) msg.textContent = "이동 중…";
   const options = { redirectTo: location.origin };
-  // 카카오: 이메일(account_email) 동의 미설정 시 KOE205가 나므로 닉네임만 요청
-  if (provider === "kakao") options.scopes = "profile_nickname";
+  // 카카오: Supabase가 account_email을 강제하므로, 카카오 앱에서 닉네임+이메일 동의항목을 켜둬야 함
+  if (provider === "kakao") options.scopes = "account_email profile_nickname";
   const { error } = await sb.auth.signInWithOAuth({ provider, options });
   if (error && msg) msg.textContent = "소셜 로그인 실패: " + error.message + " (관리자: Supabase에서 " + provider + " 공급자를 설정해주세요)";
 }
