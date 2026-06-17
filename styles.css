@@ -559,3 +559,31 @@ footer a{color:var(--accent);text-decoration:none}
 .pick-info{padding:14px}
 .pick-info b{display:block;font-size:15.5px;font-weight:800;line-height:1.4;color:var(--ink)}
 .pick-info small{display:block;margin-top:5px;font-size:13px;color:var(--muted);line-height:1.5}
+
+/* =========================================================================
+   시세 워치 전용 화면
+   ========================================================================= */
+.pc-empty{color:var(--muted);font-size:14px;text-align:center;padding:18px}
+.prices-sec{margin-bottom:28px}
+.prices-sec>h3{font-size:17px;margin:0 0 12px;display:flex;align-items:baseline;gap:8px}
+.prices-sec>h3 small{font-size:12px;color:var(--muted);font-weight:600}
+.watch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.watch-grid .watch-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+
+/* 목표가 알림 행 */
+.pa-row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line)}
+.pa-row:last-of-type{border-bottom:0}
+.pa-row.muted{opacity:.55}
+.pa-main{flex:1;min-width:0}
+.pa-main b{font-size:15px;font-weight:800}
+.pa-sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.pa-cur{color:var(--muted)}
+.pa-wait{color:#b08a3a}
+.pa-hit{color:#2e8b57;font-weight:700}
+.pa-btns{display:flex;gap:6px;flex-shrink:0}
+.pa-btns button{font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--line);background:var(--cream);border-radius:8px;padding:7px 10px;color:var(--ink)}
+.pa-btns .pa-mute:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.pa-btns .pa-del:hover{background:#fdeaea;color:#c0392b;border-color:#f0c4c4}
+.pa-foot{margin-top:12px;text-align:right}
+.pa-allmute{font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:0;background:none;color:var(--muted);text-decoration:underline}
+.pa-allmute:hover{color:#c0392b}

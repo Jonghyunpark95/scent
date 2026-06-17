@@ -1,7 +1,10 @@
 /* =========================================================================
    Vercel Cron: 매일 인기 향수 최저가 수집 → Supabase price_history 저장
-   - vercel.json 의 crons 설정으로 매일 1회 자동 실행 (배포 환경에서만)
-   - 환경변수: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE
+                + 목표가 도달 시 이메일 알림 발송
+   - vercel.json crons "0 5 * * *" = UTC 05:00 = 한국시간(KST) 오후 2시 자동 실행
+     (Vercel 크론은 UTC 기준 — 한국시간 = UTC + 9시간)
+   - 환경변수: NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, SUPABASE_URL, SUPABASE_SERVICE_ROLE,
+              RESEND_API_KEY, RESEND_FROM
    ========================================================================= */
 
 // 추적할 향수 (key = 내부 id, q = 네이버 검색어)
@@ -108,7 +111,7 @@ function alertEmailHTML({ name, price, target }) {
       <div style="font-size:13px;color:#7c7870;margin-top:6px">목표가 ${won(target)} 이하</div>
     </div>
     <a href="https://scentpedia.co.kr/" style="display:inline-block;background:#b14a5f;color:#fff;font-weight:800;padding:12px 22px;border-radius:10px;text-decoration:none">구매처 보러 가기 →</a>
-    <p style="font-size:12px;color:#9b958c;margin-top:20px">Scentpedia 시세 알림 · 알림을 끄려면 사이트에서 추적을 해제하세요.</p>
+    <p style="font-size:12px;color:#9b958c;margin-top:20px">Scentpedia 시세 알림 · 한 번 도달하면 다시 오를 때까지 추가 메일은 보내지 않아요.<br>알림을 끄려면 사이트 <b>📈 시세 워치</b> 메뉴에서 끄거나 삭제할 수 있어요.</p>
   </div>`;
 }
 
@@ -128,10 +131,23 @@ async function checkAlerts(SB, SR, today) {
   const emails = await userEmails(SB, SR);
   let sent = 0;
 
+  const patch = (id, body) => fetch(`${SB}/rest/v1/price_alerts?id=eq.${id}`, {
+    method: "PATCH", headers: { ...h, "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+
   for (const a of alerts) {
+    if (a.muted) continue;                                  // 사용자가 끈 알림
+    if (a.expires_on && a.expires_on < today) continue;     // 수신 종료일 지남
     const price = prices[a.perfume_key];
-    if (!price || price > a.target_price) continue;                       // 아직 목표가 미달
-    if (a.last_notified_on === today && a.notified_price === price) continue; // 오늘 같은 가격으로 이미 발송
+    if (!price) continue;
+
+    // 목표가보다 위 → '재무장': 다음에 다시 떨어지면 알릴 수 있게 발송표시 해제
+    if (price > a.target_price) {
+      if (a.last_notified_on) await patch(a.id, { last_notified_on: null, notified_price: null });
+      continue;
+    }
+    // 여기부터 price <= target (목표 도달)
+    if (a.last_notified_on) continue;          // 이번 하락 구간에 이미 1회 발송함 → 반복 발송 안 함 (메일 폭탄 방지)
     const to = a.email || emails[a.user_id];
     if (!to) continue;
 
@@ -145,14 +161,7 @@ async function checkAlerts(SB, SR, today) {
           html: alertEmailHTML({ name: a.perfume_name || "관심 향수", price, target: a.target_price }),
         }),
       });
-      if (er.ok) {
-        sent++;
-        await fetch(`${SB}/rest/v1/price_alerts?id=eq.${a.id}`, {
-          method: "PATCH",
-          headers: { ...h, "Content-Type": "application/json" },
-          body: JSON.stringify({ last_notified_on: today, notified_price: price }),
-        });
-      }
+      if (er.ok) { sent++; await patch(a.id, { last_notified_on: today, notified_price: price }); }
     } catch (e) { /* 개별 실패는 건너뜀 */ }
   }
   return { sent };

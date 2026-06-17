@@ -157,11 +157,15 @@ create policy "tracked_insert" on public.tracked_perfumes for insert with check 
 drop policy if exists "tracked_update" on public.tracked_perfumes;
 create policy "tracked_update" on public.tracked_perfumes for update using (true);
 
--- 9) 시세 알림 이메일 발송 상태 (중복 메일 방지용 컬럼 추가)
+-- 9) 시세 알림 이메일 발송 상태 / 수신 제어 컬럼
 --    로그인 유저는 가입 이메일로 발송. 비회원/추가 수신용 email 컬럼도 둔다.
+--    muted: 사용자가 끈 알림 / expires_on: 이 날짜 이후 더 이상 발송 안 함
+--    last_notified_on: 이번 하락 구간에 발송했는지(재무장용) → 매일 폭탄 방지
 alter table public.price_alerts add column if not exists email text;
 alter table public.price_alerts add column if not exists last_notified_on date;
 alter table public.price_alerts add column if not exists notified_price int;
+alter table public.price_alerts add column if not exists muted boolean default false;
+alter table public.price_alerts add column if not exists expires_on date;
 
 -- 10) Editor's Pick (관리자가 직접 쓰는 추천 글 / 블로그)
 --     읽기: 공개(published=true)만 누구나. 쓰기: 서버(api/editor)가 service_role로만.

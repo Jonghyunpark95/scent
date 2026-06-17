@@ -14,6 +14,7 @@ function initCommunity(){
   if (!window.supabase || !window.supabase.createClient) return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
   renderHomeWatch(); renderHomeCal();
+  onPricesRoute();   // 시세 워치 화면으로 직접 들어온 경우 렌더
   const wa = document.getElementById("watchAdd"); if (wa) wa.onclick = openWatchPicker;
   sb.auth.getSession().then(({ data }) => { ME = (data && data.session && data.session.user) || null; renderAuthSlot(); initBoards(); syncRegion(); });
   sb.auth.onAuthStateChange((event, session) => {
@@ -375,31 +376,44 @@ window.renderPriceChart = async function(p){
   const box = document.getElementById("priceBox"); if (!box || !sb) return;
   box.style.display = "none";
   const { data } = await sb.from("price_history").select("collected_on,price").eq("perfume_key", p.id).order("collected_on");
-  if (!data || !data.length) return;
+  const hasData = data && data.length;
+  const watched = !!(window.isWatched && window.isWatched(p.id));
+  // 시세 기록도 없고 추적(워치)도 안 하는 향수는 칸을 숨김 (모달 깔끔하게)
+  if (!hasData && !watched) return;
   box.style.display = "";
-  const pts = data.map(d => ({ x: d.collected_on, y: d.price }));
-  const cur = pts[pts.length - 1].y;
+  const pts = hasData ? data.map(d => ({ x: d.collected_on, y: d.price })) : [];
+  const cur = hasData ? pts[pts.length - 1].y : null;
   const tkey = "target:" + p.id;
   let target = parseInt(localStorage.getItem(tkey) || "", 10) || null;
   if (ME){ try{ const { data } = await sb.from("price_alerts").select("target_price").eq("perfume_key", p.id).maybeSingle(); if (data && data.target_price) target = data.target_price; }catch(e){} }
-  box.innerHTML = `<div class="pc-h">📈 시세 추이 <span class="pc-cur">현재 시세 ${won2(cur)}</span></div>
-    <div id="pcChart"></div>
+
+  // 목표가 입력 후 안내 문구
+  const tipFor = t => {
+    if (!t) return hasData
+      ? "목표가를 정하면 시세선과 비교해드려요. 시세가 목표 아래로 내려오면 살 타이밍! 🛒"
+      : "시세는 매일 새벽 자동 수집돼요. 목표가를 미리 정해두면 도달 시 알려드려요. ⏳";
+    const reach = hasData ? targetMsg(cur, t) : "목표가가 설정됐어요. 시세가 수집되면 비교해드릴게요. ⏳";
+    return reach + (ME ? " <b>🔔 목표가 도달 시 이메일로 알려드려요</b>" : " <span style='color:var(--muted)'>(로그인하면 목표가 도달 시 이메일로 받아요)</span>");
+  };
+
+  box.innerHTML = `<div class="pc-h">📈 시세 추이 ${hasData ? `<span class="pc-cur">현재 시세 ${won2(cur)}</span>` : `<span class="pc-cur">수집 대기 중</span>`}</div>
+    ${hasData ? `<div id="pcChart"></div>` : `<div class="pc-empty">아직 시세 데이터가 없어요. 워치리스트에 있으면 곧(매일 새벽) 수집됩니다.</div>`}
     <div class="pc-target">🎯 내 목표가 <input id="pcInput" type="number" inputmode="numeric" placeholder="예: 250000" value="${target||""}"><button class="btn" id="pcSet">설정</button></div>
-    <div class="pc-msg" id="pcMsg">${target?targetMsg(cur,target):"목표가를 정하면 시세선과 비교해드려요. 시세가 목표 아래로 내려오면 살 타이밍! 🛒"}</div>`;
-  mountChart(box.querySelector("#pcChart"), pts, target);
+    <div class="pc-msg" id="pcMsg">${tipFor(target)}</div>`;
+  if (hasData) mountChart(box.querySelector("#pcChart"), pts, target);
   box.querySelector("#pcSet").onclick = () => {
     const v = parseInt(box.querySelector("#pcInput").value, 10);
     if (v > 0){
       localStorage.setItem(tkey, String(v)); target = v;
+      // 목표가를 정하면 자동으로 시세 추적 목록에도 추가 (수집 보장)
+      if (window.ensureTracked) window.ensureTracked(p);
       if (ME) sb.from("price_alerts").upsert({ user_id: ME.id, perfume_key: p.id, perfume_name: p.name, target_price: v }, { onConflict: "user_id,perfume_key" }).then(checkAlerts);
     } else {
       localStorage.removeItem(tkey); target = null;
       if (ME) sb.from("price_alerts").delete().eq("perfume_key", p.id).then(checkAlerts);
     }
-    mountChart(box.querySelector("#pcChart"), pts, target);
-    box.querySelector("#pcMsg").innerHTML = target
-      ? targetMsg(cur, target) + (ME ? " <b>🔔 목표가 도달 시 이메일로 알려드려요</b>" : " <span style='color:var(--muted)'>(로그인하면 목표가 도달 시 이메일로 받아요)</span>")
-      : "목표가가 해제됐어요.";
+    if (hasData) mountChart(box.querySelector("#pcChart"), pts, target);
+    box.querySelector("#pcMsg").innerHTML = target ? tipFor(target) : "목표가가 해제됐어요.";
   };
 };
 function targetMsg(cur, target){
@@ -469,6 +483,99 @@ async function renderHomeWatch(){
   list.querySelectorAll(".watch-x").forEach(x => x.onclick = () => { setWatch(getWatch().filter(i => i !== x.dataset.k)); renderHomeWatch(); });
 }
 function perfById(id){ return (typeof PERFUMES !== "undefined") && PERFUMES.find(x => x.id === id); }
+
+/* =========================================================================
+   시세 워치 전용 화면 (사이드바 → 📈 시세 워치)
+   ① 내 목표가 알림(끄기/삭제)  ② 내 워치리스트  ③ 최근 변동 큰 향수
+   ========================================================================= */
+window.renderPricesView = async function(){
+  const root = document.getElementById("pricesBody"); if (!root) return;
+  if (!sb){ root.innerHTML = `<div class="card pad pc-empty">시세 기능을 불러올 수 없어요.</div>`; return; }
+  root.innerHTML = `<div class="card pad pc-empty">시세 불러오는 중…</div>`;
+
+  // 최근 60일 시세 전체 로드 → 키별 포인트 배열
+  const since = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+  let rows = [];
+  try { const { data } = await sb.from("price_history").select("perfume_key,price,collected_on").gte("collected_on", since).order("collected_on"); rows = data || []; } catch (e) {}
+  const byKey = {};
+  rows.forEach(r => { (byKey[r.perfume_key] = byKey[r.perfume_key] || []).push({ x: r.collected_on, y: r.price }); });
+  const latest = k => { const a = byKey[k]; return a && a.length ? a[a.length - 1].y : null; };
+
+  // ── ① 내 목표가 알림 ──
+  let alerts = [];
+  if (ME){ try { const { data } = await sb.from("price_alerts").select("*").order("created_at"); alerts = data || []; } catch (e) {} }
+  let alertHTML;
+  if (!ME) alertHTML = `<div class="card pad pc-empty">로그인하면 목표가 도달 시 <b>이메일</b>로 알려드려요. 향수 상세에서 🎯 목표가를 설정해보세요.</div>`;
+  else if (!alerts.length) alertHTML = `<div class="card pad pc-empty">아직 설정한 목표가가 없어요. 향수 상세 화면에서 🎯 목표가를 정하면 여기에 모여요.</div>`;
+  else {
+    const rowsH = alerts.map(a => {
+      const cur = latest(a.perfume_key);
+      const status = cur == null ? `<span class="pa-wait">수집 대기 중</span>`
+        : (cur <= a.target_price) ? `<span class="pa-hit">🎉 목표 도달 · 현재 ${won2(cur)}</span>`
+        : `<span class="pa-cur">현재 ${won2(cur)}</span>`;
+      return `<div class="pa-row${a.muted ? " muted" : ""}" data-k="${esc2(a.perfume_key)}">
+        <div class="pa-main"><b>${esc2(a.perfume_name || pname(a.perfume_key))}</b>
+          <div class="pa-sub">목표 ${won2(a.target_price)} · ${status}${a.muted ? " · 🔕 알림 꺼짐" : ""}</div></div>
+        <div class="pa-btns">
+          <button class="pa-mute" data-id="${a.id}" data-m="${a.muted ? 1 : 0}">${a.muted ? "🔔 켜기" : "🔕 끄기"}</button>
+          <button class="pa-del" data-id="${a.id}" data-k="${esc2(a.perfume_key)}">삭제</button>
+        </div></div>`;
+    }).join("");
+    alertHTML = `<div class="card pad">${rowsH}<div class="pa-foot"><button class="pa-allmute">모든 알림 끄기</button></div></div>`;
+  }
+
+  // ── ② 내 워치리스트 ──
+  const watch = getWatch();
+  const watchHTML = watch.length ? watch.map(k => {
+    const pts = byKey[k] || [], name = pname(k);
+    if (!pts.length) return `<div class="watch-item" data-k="${esc2(k)}"><div class="watch-h"><b>${esc2(name)}</b></div><div class="empty-state" style="padding:8px;font-size:12px">시세 수집중… 곧 업데이트돼요</div></div>`;
+    const cur = pts[pts.length - 1].y, first = pts[0].y, diff = first ? Math.round((cur - first) / first * 100) : 0;
+    return `<div class="watch-item" data-k="${esc2(k)}"><div class="watch-h"><b>${esc2(name)}</b>
+      <span class="watch-cur">${won2(cur)} <small style="color:${diff <= 0 ? "#3fae6a" : "#c0392b"}">${diff <= 0 ? "▼" : "▲"}${Math.abs(diff)}%</small></span></div>
+      <div class="watch-chart" data-k="${esc2(k)}"></div></div>`;
+  }).join("") : `<div class="pc-empty">워치리스트가 비어있어요. 향수 상세에서 📈 시세 추적을 눌러보세요.</div>`;
+
+  // ── ③ 최근 변동 큰 향수 ──
+  const movers = Object.keys(byKey)
+    .map(k => { const a = byKey[k]; if (a.length < 2) return null; const first = a[0].y, cur = a[a.length - 1].y; return { k, cur, pct: first ? (cur - first) / first * 100 : 0 }; })
+    .filter(Boolean).sort((x, y) => Math.abs(y.pct) - Math.abs(x.pct)).slice(0, 8);
+  const moverHTML = movers.length ? movers.map(m => `
+    <div class="watch-item" data-k="${esc2(m.k)}"><div class="watch-h"><b>${esc2(pname(m.k))}</b>
+      <span class="watch-cur">${won2(m.cur)} <small style="color:${m.pct <= 0 ? "#3fae6a" : "#c0392b"}">${m.pct <= 0 ? "▼" : "▲"}${Math.abs(Math.round(m.pct))}%</small></span></div>
+      <div class="watch-chart" data-k="mv-${esc2(m.k)}"></div></div>`).join("")
+    : `<div class="pc-empty">아직 비교할 시세 데이터가 충분하지 않아요. 수집이 며칠 쌓이면 표시돼요.</div>`;
+
+  root.innerHTML = `
+    <div class="prices-sec"><h3>🔔 내 목표가 알림</h3>${alertHTML}</div>
+    <div class="prices-sec"><h3>📈 내 워치리스트</h3><div class="watch-grid">${watchHTML}</div></div>
+    <div class="prices-sec"><h3>🔥 최근 가격 변동 큰 향수 <small>(최근 60일)</small></h3><div class="watch-grid">${moverHTML}</div></div>`;
+
+  // 차트 마운트
+  watch.forEach(k => { const pts = byKey[k]; if (pts && pts.length){ const el = root.querySelector(`.watch-chart[data-k="${k}"]`); if (el) mountChart(el, pts, null); } });
+  movers.forEach(m => { const pts = byKey[m.k]; const el = root.querySelector(`.watch-chart[data-k="mv-${m.k}"]`); if (el && pts) mountChart(el, pts, null); });
+
+  // 행 클릭 → 상세 모달(목표가 수정)
+  root.querySelectorAll(".pa-row, .watch-item").forEach(row => {
+    const target = row.querySelector(".pa-main") || row.querySelector(".watch-h");
+    if (!target) return;
+    target.style.cursor = "pointer";
+    target.addEventListener("click", () => { const p = perfById(row.dataset.k); if (p && window.openModal) window.openModal(p); });
+  });
+  // 알림 끄기/켜기 · 삭제 · 전체 끄기
+  root.querySelectorAll(".pa-mute").forEach(b => b.onclick = async e => {
+    e.stopPropagation(); await sb.from("price_alerts").update({ muted: b.dataset.m !== "1" }).eq("id", b.dataset.id); window.renderPricesView();
+  });
+  root.querySelectorAll(".pa-del").forEach(b => b.onclick = async e => {
+    e.stopPropagation(); await sb.from("price_alerts").delete().eq("id", b.dataset.id);
+    try { localStorage.removeItem("target:" + b.dataset.k); } catch (_) {} window.renderPricesView();
+  });
+  const allMute = root.querySelector(".pa-allmute");
+  if (allMute) allMute.onclick = async () => {
+    if (!confirm("설정한 모든 목표가 알림을 끌까요? (목표가 자체는 남아있어요)")) return;
+    await sb.from("price_alerts").update({ muted: true }).eq("user_id", ME.id); window.renderPricesView();
+  };
+};
+
 /* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
 async function registerTracked(id){
   if (!sb) return;
@@ -485,6 +592,8 @@ async function addWatch(id){
   await registerTracked(id);
 }
 window.isWatched = function(id){ return getWatch().includes(id); };
+// 목표가 설정 시 호출 → 시세 추적 목록에 등록(크론이 가격 수집하도록 보장)
+window.ensureTracked = async function(p){ if (p && !p._api) await addWatch(p.id); };
 window.toggleWatch = async function(p, btn){
   if (!p || p._api) return;
   const a = getWatch(), has = a.includes(p.id);
@@ -577,6 +686,12 @@ function openAlerts(){
   </div>`;
   wireClose(m);
 }
+
+/* 시세 워치 화면 진입 시 렌더 (사이드바 → 📈 시세 워치) */
+function onPricesRoute(){
+  if ((location.hash || "").replace(/^#\/?/, "") === "prices" && window.renderPricesView) window.renderPricesView();
+}
+window.addEventListener("hashchange", onPricesRoute);
 
 // supabase-js 로드 이후 초기화
 if (window.supabase) initCommunity();

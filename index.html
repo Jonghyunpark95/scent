@@ -19,7 +19,7 @@
 <link rel="apple-touch-icon" href="/logo.png?v=1">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=26">
+<link rel="stylesheet" href="styles.css?v=27">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -45,6 +45,7 @@
     <a href="#/worldcup"><span class="ic">🏆</span> 이상형 월드컵</a>
     <a href="#/brands"><span class="ic">🏷️</span> 브랜드별</a>
     <a href="#/diffusers"><span class="ic">🪔</span> 디퓨저</a>
+    <a href="#/prices"><span class="ic">📈</span> 시세 워치</a>
     <a href="#/community"><span class="ic">💬</span> 커뮤니티</a>
     <a href="#/encyclopedia"><span class="ic">📖</span> 백과사전</a>
   </nav>
@@ -73,6 +74,7 @@
     <a href="#/worldcup" class="tile"><span class="t-emoji">🏆</span><b>이상형 월드컵</b><small>내 원픽 향수</small></a>
     <a href="#/brands" class="tile"><span class="t-emoji">🏷️</span><b>브랜드별</b><small>39개 브랜드</small></a>
     <a href="#/diffusers" class="tile"><span class="t-emoji">🪔</span><b>디퓨저</b><small>실시간 가격</small></a>
+    <a href="#/prices" class="tile"><span class="t-emoji">📈</span><b>시세 워치</b><small>목표가 알림</small></a>
     <a href="#/community" class="tile"><span class="t-emoji">💬</span><b>커뮤니티</b><small>캘린더·후기</small></a>
     <a href="#/encyclopedia" class="tile"><span class="t-emoji">📖</span><b>백과사전</b><small>향수 검색</small></a>
   </div>
@@ -221,6 +223,14 @@
   <section id="worldcup"></section>
 </div><!-- /view-worldcup -->
 
+<div class="view" id="view-prices" style="display:none">
+  <section id="prices-view">
+    <div class="sec-h"><span class="num">📈 시세</span><h2>향수 시세 워치</h2>
+      <p>목표가를 정해두면 도달 시 이메일로 알려드려요 · 가격 변동도 한눈에</p></div>
+    <div id="pricesBody"></div>
+  </section>
+</div><!-- /view-prices -->
+
 <div class="view" id="view-brands" style="display:none">
 
   <!-- 브랜드별 -->
@@ -311,9 +321,9 @@
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
 <script src="data.js?v=23"></script>
-<script src="app.js?v=26"></script>
+<script src="app.js?v=27"></script>
 <script src="worldcup.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="community.js?v=26"></script>
+<script src="community.js?v=27"></script>
 </body>
 </html>

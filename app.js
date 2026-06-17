@@ -1041,7 +1041,7 @@ initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
 /* ---------- 페이지 라우터 (해시) ---------- */
-const ROUTES = ["home","analyze","worldcup","brands","diffusers","community","encyclopedia"];
+const ROUTES = ["home","analyze","worldcup","brands","diffusers","prices","community","encyclopedia"];
 function currentRoute(){ const h = (location.hash || "").replace(/^#\/?/, ""); return ROUTES.includes(h) ? h : "home"; }
 function showView(){
   const v = currentRoute();
