@@ -119,8 +119,8 @@ function openAuthModal(){
   renderAuthForm("login");
 }
 function socialHTML(){
+  // 카카오는 이메일 동의항목(비즈앱) 설정 전까지 숨김. 구글 + 이메일 + 비회원으로 운영.
   return `<div class="auth-social">
-      <button class="social-btn kakao" data-prov="kakao">💬 카카오로 계속하기</button>
       <button class="social-btn google" data-prov="google">🇬 구글로 계속하기</button>
     </div>
     <div class="auth-sep">또는 이메일로</div>`;

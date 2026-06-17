@@ -358,12 +358,29 @@ function initBrands(){
   });
   renderBrand("전체");
 }
+const BRAND_PAGE = 10;
+let _brandState = { list: [], shown: 0 };
 function renderBrand(b){
   const grid = $("#brandGrid");
   const internal = b==="전체" ? PERFUMES : PERFUMES.filter(p=>p.brand===b);
-  grid.innerHTML = internal.map(p=>pcard(p, null)).join("");
-  observeImages(grid);
+  _brandState = { list: internal, shown: 0 };
+  grid.innerHTML = "";
+  appendBrandPage();
   if (b !== "전체" && API.enabled && typeof BRAND_EN !== "undefined" && BRAND_EN[b]) loadBrandExtra(b, internal);
+}
+function appendBrandPage(){
+  const grid = $("#brandGrid"); if(!grid) return;
+  const next = _brandState.list.slice(_brandState.shown, _brandState.shown + BRAND_PAGE);
+  grid.insertAdjacentHTML("beforeend", next.map(p=>pcard(p, null)).join(""));
+  _brandState.shown += next.length;
+  observeImages(grid);
+  const wrap = $("#brandLoadMore");
+  if(wrap){
+    const remaining = _brandState.list.length - _brandState.shown;
+    wrap.innerHTML = remaining > 0
+      ? `<button class="btn ghost2 more-btn" id="brandMoreBtn">더 보기 (${remaining}개 더)</button>` : "";
+    const btn = $("#brandMoreBtn"); if(btn) btn.onclick = appendBrandPage;
+  }
 }
 /* 브랜드 선택 시 API(전 세계 DB)에서 해당 브랜드 향수를 추가로 로딩 */
 async function loadBrandExtra(b, internal){
@@ -779,6 +796,19 @@ async function initNews(){
 }
 
 /* =========================================================================
+   네이버 실시간 인기 향수 (네이버 쇼핑 인기 상품)
+   ========================================================================= */
+async function initNaverHot(){
+  const sec=$("#naverHot"); if(!sec) return;
+  if(!NAVER.enabled){ sec.style.display="none"; return; }
+  const data=await naverFetch("search", { q:"향수", display:20, sort:"sim", minPrice:30000 });
+  const items=(data && data.items ? data.items : []).filter(i=>i.price>0 && i.image).slice(0,8);
+  if(!items.length){ sec.style.display="none"; return; }
+  $("#naverHotGrid").innerHTML=items.map(dcard).join("");
+  sec.style.display="";
+}
+
+/* =========================================================================
    결과 공유 (이미지 카드 다운로드 / 사이트 공유)
    ========================================================================= */
 let _shareData = null;
@@ -960,7 +990,7 @@ renderRecent();
 initBrands();
 pingAPI();
 initWeather();
-pingNaver().then(()=>{ initDiffusers(); initNews(); observeImages(document); });
+pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
 /* ---------- 페이지 라우터 (해시) ---------- */
 const ROUTES = ["home","analyze","brands","diffusers","community","encyclopedia"];

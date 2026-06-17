@@ -42,6 +42,8 @@ a{color:inherit}
 .topbar .wrap{display:flex;align-items:center;gap:10px;height:62px}
 .logo{font-weight:800;letter-spacing:-.02em;font-size:20px;display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
 .logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.logo-img{width:30px;height:30px;border-radius:50%;object-fit:cover;flex:0 0 auto}
+.logo-img + .dot{display:none}
 .logo b{font-weight:800;color:var(--accent)}
 .topnav{margin-left:auto;display:flex;gap:4px}
 .topnav a{font-size:14px;color:var(--muted);text-decoration:none;padding:8px 13px;border-radius:8px;transition:.15s}
@@ -398,6 +400,8 @@ footer a{color:var(--accent);text-decoration:none}
 .ncard .ndesc{font-size:13px;color:var(--muted);margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ncard .nmeta{font-size:11.5px;color:#a29e95;margin-top:10px}
 
+.more-wrap{display:flex;justify-content:center;margin-top:22px}
+.more-btn{min-width:220px}
 .empty-state{color:var(--muted);text-align:center;padding:32px 10px;font-size:14px;grid-column:1/-1}
 .spinner{width:18px;height:18px;border:2.5px solid var(--cream2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle;margin:0 4px}
 @keyframes spin{to{transform:rotate(360deg)}}
