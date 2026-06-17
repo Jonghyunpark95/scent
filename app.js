@@ -412,6 +412,23 @@ function renderFeatured(){
   observeImages(rail);
 }
 
+/* 에디터 추천 (Editor's Pick) — 홈 노출. /api/editor 공개 목록 */
+async function initEditorPicks(){
+  const rail = $("#pickRail"); if(!rail) return;
+  try{
+    const r = await fetch("/api/editor");
+    const j = await r.json();
+    const picks = (j && j.ok && j.picks) || [];
+    if(!picks.length) return;
+    rail.innerHTML = picks.slice(0,6).map(p=>`
+      <a class="pick-card" href="/pick/${encodeURIComponent(p.slug)}">
+        <div class="pick-thumb">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy">`:"✨"}</div>
+        <div class="pick-info"><b>${esc(p.title)}</b><small>${esc((p.summary||"").slice(0,48))}</small></div>
+      </a>`).join("");
+    $("#editorPick").style.display = "";
+  }catch(e){}
+}
+
 /* 최근 본 향수 (localStorage) */
 function pushRecent(p){
   if (!p || p._api) return;   // 내장 향수만 (새로고침 후 복원 가능)
@@ -813,6 +830,25 @@ async function initNaverHot(){
    ========================================================================= */
 let _shareData = null;
 const LAYER_SHARE = { top:"첫인상(상큼함) 중시형", middle:"개성(꽃·스파이스) 중시형", base:"잔향(깊은 마무리) 중시형" };
+/* 계열별 향수 유형(MBTI 느낌) */
+const PERFUME_TYPES = {
+  citrus:  { name:"프레시 에너자이저", emoji:"🍋", tagline:"상큼하게 하루를 여는 사람", desc:"청량하고 깨끗한 향으로 활기를 주는 타입. 시트러스·아쿠아틱이 찰떡이에요." },
+  fruity:  { name:"스위트 무드메이커", emoji:"🍑", tagline:"달콤 발랄한 분위기 메이커", desc:"과즙 가득한 달콤함을 즐기는 타입. 사랑스럽고 친근한 인상을 줘요." },
+  floral:  { name:"로맨틱 드리머", emoji:"🌸", tagline:"화사한 꽃을 두른 로맨티스트", desc:"우아하고 화사한 플로럴을 사랑하는 타입. 부드럽고 사랑스러운 무드." },
+  green:   { name:"내추럴 힐러", emoji:"🌿", tagline:"숲 한가운데의 평온함", desc:"풀잎·차 같은 자연의 청량함을 즐기는 타입. 편안하고 담백해요." },
+  aromatic:{ name:"쿨 미니멀리스트", emoji:"🪴", tagline:"군더더기 없는 허브 무드", desc:"라벤더·세이지 같은 허브 향의 깔끔함을 선호하는 절제된 타입." },
+  spicy:   { name:"시크 모험가", emoji:"🌶️", tagline:"따뜻하고 대담한 스파이스", desc:"알싸하고 따뜻한 스파이스로 강한 존재감을 주는 타입." },
+  sweet:   { name:"허니 로맨티스트", emoji:"🍯", tagline:"포근하고 달콤한 끌림", desc:"꿀처럼 달콤하고 포근한 향에 끌리는 다정한 타입." },
+  woody:   { name:"우디 로맨티스트", emoji:"🪵", tagline:"그윽하고 깊은 매력", desc:"샌달우드·시더 같은 나무향의 깊이를 즐기는, 차분하고 세련된 타입." },
+  oriental:{ name:"미스터리 매혹가", emoji:"🏜️", tagline:"관능적이고 신비로운 잔향", desc:"앰버·인센스·레더의 관능적 깊이를 사랑하는 매혹적인 타입." },
+  musk:    { name:"클린 살냄새파", emoji:"🤍", tagline:"가까이서 더 좋은 은은함", desc:"포근한 머스크, 갓 세탁한 듯 깨끗한 향을 좋아하는 타입." },
+  aquatic: { name:"프레시 자유인", emoji:"🌊", tagline:"바다처럼 시원하고 자유롭게", desc:"물·바다의 청량함을 즐기는 쿨하고 자유로운 타입." },
+  gourmand:{ name:"스위트 미식가", emoji:"🍮", tagline:"디저트 같은 달콤함", desc:"바닐라·카라멜처럼 먹음직한 달콤함을 사랑하는 타입." },
+};
+function determineType(entries){
+  const topFam = entries[0][0];
+  return Object.assign({ key: topFam }, PERFUME_TYPES[topFam] || PERFUME_TYPES.woody);
+}
 function buildShareData(familyScore, layer, n){
   const entries = Object.entries(familyScore).sort((a,b)=>b[1]-a[1]);
   if(!entries.length){ _shareData=null; return; }
@@ -822,33 +858,44 @@ function buildShareData(familyScore, layer, n){
   ["top","middle","base"].forEach(L=>{ const t=Object.entries(layer[L]).sort((a,b)=>b[1]-a[1])[0]; score[L]= t? t[1]/n : 0; });
   const winner = ["top","middle","base"].sort((a,b)=>score[b]-score[a])[0];
   _shareData = {
+    type: determineType(entries),
     fams: entries.slice(0,3).map(([f,v])=>{ const m=famMeta(f); return { label:m.label, emoji:m.emoji, color:m.color, pct:Math.round(v/max*100) }; }),
     winner: LAYER_SHARE[winner] || "",
     count: n,
   };
+  renderTypeCard();
   renderSharePreview();
+}
+function renderTypeCard(){
+  const box=$("#typeCard"); if(!box||!_shareData) return;
+  const t=_shareData.type;
+  box.innerHTML = `<div class="type-eyebrow">🧪 나의 향수 유형</div>
+    <div class="type-emoji">${t.emoji}</div>
+    <div class="type-name">${esc(t.name)}</div>
+    <div class="type-tag">"${esc(t.tagline)}"</div>
+    <p class="type-desc">${esc(t.desc)}</p>`;
 }
 function renderSharePreview(){
   const box=$("#sharePreview"); if(!box||!_shareData) return;
-  const top=_shareData.fams[0];
+  const t=_shareData.type;
   box.innerHTML = `<div class="sp-card">
-    <div class="sp-emoji">${top.emoji}</div>
-    <div class="sp-title">내 향수 취향은 <b>${esc(top.label)}</b></div>
+    <div class="sp-emoji">${t.emoji}</div>
+    <div class="sp-eyebrow">내 향수 유형</div>
+    <div class="sp-title"><b>${esc(t.name)}</b></div>
+    <div class="sp-tag">"${esc(t.tagline)}"</div>
     <div class="sp-fams">${_shareData.fams.map(f=>`<span><b>${f.emoji} ${esc(f.label)}</b> ${f.pct}%</span>`).join("")}</div>
-    ${_shareData.winner?`<div class="sp-verdict">🎯 ${esc(_shareData.winner)}</div>`:""}
     <div class="sp-foot">scentpedia.co.kr</div>
   </div>`;
 }
 /* 공유용 결과 카드 SVG (1080×1350, 인스타 세로) */
 function buildResultCardSVG(d){
-  const W=1080, H=1350;
-  const f0=d.fams[0];
+  const W=1080, H=1350, t=d.type;
   const bars = d.fams.map((f,i)=>{
-    const y=720+i*150, bw=Math.max(60, Math.round(760*f.pct/100));
-    return `<text x="90" y="${y-18}" font-size="40" font-weight="700" fill="#1a1916">${esc(f.emoji+" "+f.label)}</text>
-      <text x="990" y="${y-18}" font-size="40" font-weight="800" fill="#b14a5f" text-anchor="end">${f.pct}%</text>
-      <rect x="90" y="${y}" width="900" height="26" rx="13" fill="#f1ece4"/>
-      <rect x="90" y="${y}" width="${bw}" height="26" rx="13" fill="${f.color}"/>`;
+    const y=760+i*145, bw=Math.max(60, Math.round(760*f.pct/100));
+    return `<text x="90" y="${y-18}" font-size="38" font-weight="700" fill="#1a1916">${esc(f.emoji+" "+f.label)}</text>
+      <text x="990" y="${y-18}" font-size="38" font-weight="800" fill="#b14a5f" text-anchor="end">${f.pct}%</text>
+      <rect x="90" y="${y}" width="900" height="24" rx="12" fill="#f1ece4"/>
+      <rect x="90" y="${y}" width="${bw}" height="24" rx="12" fill="${f.color}"/>`;
   }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Pretendard, 'Apple SD Gothic Neo', sans-serif">
     <rect width="${W}" height="${H}" fill="#ffffff"/>
@@ -856,13 +903,13 @@ function buildResultCardSVG(d){
     <defs><radialGradient id="g" cx="50%" cy="0%" r="80%">
       <stop offset="0%" stop-color="#f5e6ea"/><stop offset="55%" stop-color="#fbf8f4"/><stop offset="100%" stop-color="#ffffff"/>
     </radialGradient></defs>
-    <text x="90" y="130" font-size="34" font-weight="800" fill="#b14a5f" letter-spacing="2">SCENTPEDIA · 향수 취향 분석</text>
-    <text x="540" y="340" font-size="220" text-anchor="middle">${esc(f0.emoji)}</text>
-    <text x="540" y="470" font-size="54" font-weight="800" fill="#1a1916" text-anchor="middle">내 향수 취향은</text>
-    <text x="540" y="560" font-size="76" font-weight="800" fill="#b14a5f" text-anchor="middle">${esc(f0.label)}</text>
-    ${d.winner?`<text x="540" y="640" font-size="38" fill="#7c7870" text-anchor="middle">🎯 ${esc(d.winner)}</text>`:""}
+    <text x="90" y="120" font-size="32" font-weight="800" fill="#b14a5f" letter-spacing="2">SCENTPEDIA · 향수 유형 테스트</text>
+    <text x="540" y="330" font-size="200" text-anchor="middle">${esc(t.emoji)}</text>
+    <text x="540" y="445" font-size="46" font-weight="700" fill="#7c7870" text-anchor="middle">내 향수 유형은</text>
+    <text x="540" y="540" font-size="78" font-weight="800" fill="#b14a5f" text-anchor="middle">${esc(t.name)}</text>
+    <text x="540" y="615" font-size="38" fill="#3a3833" text-anchor="middle">"${esc(t.tagline)}"</text>
     ${bars}
-    <text x="540" y="1270" font-size="36" font-weight="700" fill="#1a1916" text-anchor="middle">나도 분석하러 가기 → scentpedia.co.kr</text>
+    <text x="540" y="1280" font-size="34" font-weight="700" fill="#1a1916" text-anchor="middle">나도 테스트하기 → scentpedia.co.kr</text>
   </svg>`;
 }
 function svgToPngBlob(svg){
@@ -986,6 +1033,7 @@ function fillQuick(){
 fillQuick();
 renderChips();
 renderFeatured();
+initEditorPicks();
 renderRecent();
 initBrands();
 pingAPI();
@@ -993,7 +1041,7 @@ initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
 /* ---------- 페이지 라우터 (해시) ---------- */
-const ROUTES = ["home","analyze","brands","diffusers","community","encyclopedia"];
+const ROUTES = ["home","analyze","worldcup","brands","diffusers","community","encyclopedia"];
 function currentRoute(){ const h = (location.hash || "").replace(/^#\/?/, ""); return ROUTES.includes(h) ? h : "home"; }
 function showView(){
   const v = currentRoute();
@@ -1004,6 +1052,16 @@ function showView(){
 }
 window.addEventListener("hashchange", showView);
 showView();
+
+/* ---------- 딥링크: SEO 향수 페이지(/perfume/:id)의 "앱에서 보기" → ?p=id 로 들어오면 상세 모달 열기 ---------- */
+(function openFromQuery(){
+  try{
+    const id = new URLSearchParams(location.search).get("p");
+    if(!id) return;
+    const p = findPerfume(id);
+    if(p) setTimeout(()=>openModal(p), 300);
+  }catch(e){}
+})();
 
 /* ---------- 사이드바 (모바일 드로어) ---------- */
 (function initSidebar(){

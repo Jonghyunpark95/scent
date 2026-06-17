@@ -19,7 +19,7 @@
 <link rel="apple-touch-icon" href="/logo.png?v=1">
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=25">
+<link rel="stylesheet" href="styles.css?v=26">
 
 <!-- 구글 애드센스 -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1044916550088750"
@@ -42,12 +42,13 @@
   <nav class="sidenav">
     <a href="#/home"><span class="ic">🏠</span> 홈</a>
     <a href="#/analyze"><span class="ic">🧪</span> 취향 분석</a>
+    <a href="#/worldcup"><span class="ic">🏆</span> 이상형 월드컵</a>
     <a href="#/brands"><span class="ic">🏷️</span> 브랜드별</a>
     <a href="#/diffusers"><span class="ic">🪔</span> 디퓨저</a>
     <a href="#/community"><span class="ic">💬</span> 커뮤니티</a>
     <a href="#/encyclopedia"><span class="ic">📖</span> 백과사전</a>
   </nav>
-  <div class="side-ad">광고·제휴 문의<br><a href="mailto:jongjiya@naver.com">jongjiya@naver.com</a></div>
+  <div class="side-ad">광고·제휴 · 건의 · 기능 개선<br>무엇이든 문의하세요<br><a href="mailto:jongjiya@naver.com?subject=%5BScentpedia%5D%20%EB%AC%B8%EC%9D%98%C2%B7%EA%B1%B4%EC%9D%98">jongjiya@naver.com</a></div>
 </aside>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
@@ -69,6 +70,7 @@
   <!-- 메뉴 타일 -->
   <div class="tiles">
     <a href="#/analyze" class="tile"><span class="t-emoji">🧪</span><b>취향 분석</b><small>1분 진단·추천</small></a>
+    <a href="#/worldcup" class="tile"><span class="t-emoji">🏆</span><b>이상형 월드컵</b><small>내 원픽 향수</small></a>
     <a href="#/brands" class="tile"><span class="t-emoji">🏷️</span><b>브랜드별</b><small>39개 브랜드</small></a>
     <a href="#/diffusers" class="tile"><span class="t-emoji">🪔</span><b>디퓨저</b><small>실시간 가격</small></a>
     <a href="#/community" class="tile"><span class="t-emoji">💬</span><b>커뮤니티</b><small>캘린더·후기</small></a>
@@ -98,6 +100,13 @@
     <div class="sec-h"><span class="num">🔥 실시간</span><h2>네이버 인기 향수</h2>
       <p>네이버 쇼핑 기준 인기 상품 · 눌러서 구매</p></div>
     <div class="grid" id="naverHotGrid"></div>
+  </section>
+
+  <!-- 에디터 추천 (Editor's Pick) -->
+  <section id="editorPick" style="display:none">
+    <div class="sec-h"><span class="num">✨ 에디터</span><h2>에디터 추천</h2>
+      <p>에디터가 직접 고른 향수 이야기 · <a href="/pick">전체 보기 →</a></p></div>
+    <div class="pick-rail" id="pickRail"></div>
   </section>
 
   <!-- 상단 인기 향수 갤러리 (실제 사진) -->
@@ -146,6 +155,11 @@
 
   <!-- RESULTS -->
   <div id="results">
+
+    <!-- 향수 유형(MBTI) 결과 -->
+    <section id="typeReveal">
+      <div class="card pad type-card" id="typeCard"></div>
+    </section>
 
     <!-- 취향 프로필 -->
     <section>
@@ -202,6 +216,10 @@
   </div>
 
 </div><!-- /view-analyze -->
+
+<div class="view" id="view-worldcup" style="display:none">
+  <section id="worldcup"></section>
+</div><!-- /view-worldcup -->
 
 <div class="view" id="view-brands" style="display:none">
 
@@ -285,16 +303,17 @@
     향수 추천은 노트(향료) 데이터 기반의 참고용이며 개인의 취향과 다를 수 있습니다.
     브랜드명·제품명은 각 상표권자의 자산입니다.
   </p>
-  <p class="foot-ad">광고·제휴 문의 <a href="mailto:jongjiya@naver.com">jongjiya@naver.com</a></p>
+  <p class="foot-ad">광고·제휴 · 건의사항 · 기능 개선 문의 <a href="mailto:jongjiya@naver.com?subject=%5BScentpedia%5D%20%EB%AC%B8%EC%9D%98%C2%B7%EA%B1%B4%EC%9D%98">jongjiya@naver.com</a></p>
   <p style="margin-top:10px;font-size:12px;opacity:.6">© 2026 Scentpedia</p>
 </footer>
 
 <!-- 상세 모달 -->
 <div class="modal" id="modal"><div class="box card pad" id="modalBody"></div></div>
 
-<script src="data.js?v=22"></script>
-<script src="app.js?v=25"></script>
+<script src="data.js?v=23"></script>
+<script src="app.js?v=26"></script>
+<script src="worldcup.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="community.js?v=25"></script>
+<script src="community.js?v=26"></script>
 </body>
 </html>

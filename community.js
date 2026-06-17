@@ -398,7 +398,7 @@ window.renderPriceChart = async function(p){
     }
     mountChart(box.querySelector("#pcChart"), pts, target);
     box.querySelector("#pcMsg").innerHTML = target
-      ? targetMsg(cur, target) + (ME ? " <b>🔔 알림 설정됨</b>" : " <span style='color:var(--muted)'>(로그인하면 알림으로 받아요)</span>")
+      ? targetMsg(cur, target) + (ME ? " <b>🔔 목표가 도달 시 이메일로 알려드려요</b>" : " <span style='color:var(--muted)'>(로그인하면 목표가 도달 시 이메일로 받아요)</span>")
       : "목표가가 해제됐어요.";
   };
 };

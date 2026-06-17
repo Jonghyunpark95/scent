@@ -72,6 +72,92 @@ async function collectOne(t, { ID, SECRET, SB, SR, today, JUNK }) {
   } catch (e) { return false; }
 }
 
+// 오늘 수집된 가격을 perfume_key → price 맵으로 읽어온다.
+async function todayPrices(SB, SR, today) {
+  try {
+    const r = await fetch(`${SB}/rest/v1/price_history?select=perfume_key,price&collected_on=eq.${today}`, {
+      headers: { apikey: SR, Authorization: "Bearer " + SR },
+    });
+    if (!r.ok) return {};
+    const rows = await r.json();
+    const map = {};
+    for (const x of rows || []) map[x.perfume_key] = x.price;
+    return map;
+  } catch (e) { return {}; }
+}
+
+// 가입자 user_id → 이메일 맵 (GoTrue admin)
+async function userEmails(SB, SR) {
+  try {
+    const r = await fetch(`${SB}/auth/v1/admin/users?per_page=1000`, { headers: { apikey: SR, Authorization: "Bearer " + SR } });
+    const j = await r.json();
+    const map = {};
+    for (const u of (j.users || [])) if (u.email) map[u.id] = u.email;
+    return map;
+  } catch (e) { return {}; }
+}
+
+function alertEmailHTML({ name, price, target }) {
+  const won = n => "약 " + Number(n).toLocaleString("ko-KR") + "원";
+  return `<div style="font-family:'Pretendard',sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1a1916">
+    <h2 style="color:#b14a5f;margin:0 0 8px">📉 목표가 도달!</h2>
+    <p style="font-size:15px;line-height:1.7"><b>${name}</b>의 시세가 설정하신 목표가에 도달했어요.</p>
+    <div style="background:#faf7f2;border:1px solid #e7e2d9;border-radius:12px;padding:16px;margin:16px 0">
+      <div style="font-size:14px;color:#7c7870">현재 시세</div>
+      <div style="font-size:26px;font-weight:800;color:#b14a5f">${won(price)}</div>
+      <div style="font-size:13px;color:#7c7870;margin-top:6px">목표가 ${won(target)} 이하</div>
+    </div>
+    <a href="https://scentpedia.co.kr/" style="display:inline-block;background:#b14a5f;color:#fff;font-weight:800;padding:12px 22px;border-radius:10px;text-decoration:none">구매처 보러 가기 →</a>
+    <p style="font-size:12px;color:#9b958c;margin-top:20px">Scentpedia 시세 알림 · 알림을 끄려면 사이트에서 추적을 해제하세요.</p>
+  </div>`;
+}
+
+// 목표가 도달 알림 이메일 발송 (Resend). 발송 건수 반환.
+async function checkAlerts(SB, SR, today) {
+  const RESEND = process.env.RESEND_API_KEY;
+  const FROM = process.env.RESEND_FROM || "Scentpedia <onboarding@resend.dev>";
+  if (!RESEND) return { sent: 0, reason: "resend_not_configured" };
+
+  const h = { apikey: SR, Authorization: "Bearer " + SR };
+  const ar = await fetch(`${SB}/rest/v1/price_alerts?select=*`, { headers: h });
+  if (!ar.ok) return { sent: 0, reason: "alerts_read_failed" };
+  const alerts = await ar.json();
+  if (!alerts || !alerts.length) return { sent: 0 };
+
+  const prices = await todayPrices(SB, SR, today);
+  const emails = await userEmails(SB, SR);
+  let sent = 0;
+
+  for (const a of alerts) {
+    const price = prices[a.perfume_key];
+    if (!price || price > a.target_price) continue;                       // 아직 목표가 미달
+    if (a.last_notified_on === today && a.notified_price === price) continue; // 오늘 같은 가격으로 이미 발송
+    const to = a.email || emails[a.user_id];
+    if (!to) continue;
+
+    try {
+      const er = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + RESEND, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          from: FROM, to,
+          subject: `📉 ${a.perfume_name || "관심 향수"} 목표가 도달!`,
+          html: alertEmailHTML({ name: a.perfume_name || "관심 향수", price, target: a.target_price }),
+        }),
+      });
+      if (er.ok) {
+        sent++;
+        await fetch(`${SB}/rest/v1/price_alerts?id=eq.${a.id}`, {
+          method: "PATCH",
+          headers: { ...h, "Content-Type": "application/json" },
+          body: JSON.stringify({ last_notified_on: today, notified_price: price }),
+        });
+      }
+    } catch (e) { /* 개별 실패는 건너뜀 */ }
+  }
+  return { sent };
+}
+
 export default async function handler(req, res) {
   const ID = process.env.NAVER_CLIENT_ID, SECRET = process.env.NAVER_CLIENT_SECRET;
   const SB = process.env.SUPABASE_URL, SR = process.env.SUPABASE_SERVICE_ROLE;
@@ -98,5 +184,8 @@ export default async function handler(req, res) {
     const results = await Promise.all(chunk.map(t => collectOne(t, ctx)));
     saved += results.filter(Boolean).length;
   }
-  return res.status(200).json({ ok: true, date: today, saved, tracked: LIST.length });
+
+  // 가격 수집 후 목표가 도달 알림 이메일 발송
+  const alerts = await checkAlerts(SB, SR, today);
+  return res.status(200).json({ ok: true, date: today, saved, tracked: LIST.length, alerts });
 }

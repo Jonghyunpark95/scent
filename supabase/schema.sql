@@ -156,3 +156,33 @@ drop policy if exists "tracked_insert" on public.tracked_perfumes;
 create policy "tracked_insert" on public.tracked_perfumes for insert with check (true);
 drop policy if exists "tracked_update" on public.tracked_perfumes;
 create policy "tracked_update" on public.tracked_perfumes for update using (true);
+
+-- 9) 시세 알림 이메일 발송 상태 (중복 메일 방지용 컬럼 추가)
+--    로그인 유저는 가입 이메일로 발송. 비회원/추가 수신용 email 컬럼도 둔다.
+alter table public.price_alerts add column if not exists email text;
+alter table public.price_alerts add column if not exists last_notified_on date;
+alter table public.price_alerts add column if not exists notified_price int;
+
+-- 10) Editor's Pick (관리자가 직접 쓰는 추천 글 / 블로그)
+--     읽기: 공개(published=true)만 누구나. 쓰기: 서버(api/editor)가 service_role로만.
+create table if not exists public.editor_picks (
+  id bigint generated always as identity primary key,
+  slug text unique not null,
+  title text not null,
+  summary text,
+  body text,
+  image_url text,
+  published boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.editor_picks enable row level security;
+drop policy if exists "picks_read" on public.editor_picks;
+create policy "picks_read" on public.editor_picks for select using (published);
+-- 쓰기는 service_role(api/editor)만 → RLS 우회하므로 insert/update 정책 불필요
+create index if not exists editor_picks_pub_idx on public.editor_picks(published, created_at desc);
+
+-- 11) Editor's Pick 이미지 저장용 공개 스토리지 버킷
+insert into storage.buckets (id, name, public)
+values ('editor', 'editor', true)
+on conflict (id) do update set public = true;

@@ -501,3 +501,8 @@ PERFUMES.push(
   // 펜할리곤스
   { id:"pen-lordgeorge", brand:"펜할리곤스", name:"더 트래지디 오브 로드 조지", en:"Penhaligon's The Tragedy of Lord George", gender:"남성", price:330000, top:["rum"], middle:["tonka","cinnamon"], base:["amber","sandalwood","cedar"], desc:"브랜디와 통카의 따뜻하고 고급스러운 향" },
 );
+
+/* === Node(서버리스 함수)에서도 데이터 재사용 — 브라우저에선 module이 undefined라 무시됨 === */
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { NOTES, NOTE_FAMILIES, PERFUMES, EN_NAMES, BRAND_EN };
+}

@@ -4,6 +4,13 @@
   "crons": [
     { "path": "/api/cron/collect-prices", "schedule": "0 3 * * *" }
   ],
+  "rewrites": [
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/perfume", "destination": "/api/perfume" },
+    { "source": "/perfume/:id", "destination": "/api/perfume?id=:id" },
+    { "source": "/pick", "destination": "/api/pick" },
+    { "source": "/pick/:slug", "destination": "/api/pick?slug=:slug" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

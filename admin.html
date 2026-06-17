@@ -26,6 +26,22 @@
   .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
   .ok{background:#e3f5ea;color:#2e8b57}.no{background:#fdeaea;color:#c0392b}
   .err{color:#c0392b;margin-top:10px;font-size:14px}
+  .sec{background:#fff;border:1px solid #e7e2d9;border-radius:14px;padding:20px;margin-top:26px}
+  .sec h2{font-size:18px;margin:0 0 4px}
+  .sec .hint{color:#7c7870;font-size:13px;margin-bottom:14px}
+  .fld{margin-bottom:12px}
+  .fld label{display:block;font-size:13px;font-weight:700;margin-bottom:5px}
+  .fld input[type=text],.fld textarea{width:100%;padding:11px 13px;border:1px solid #e7e2d9;border-radius:10px;font-size:14px;font-family:inherit}
+  .fld textarea{min-height:140px;resize:vertical;line-height:1.6}
+  .fld input[type=file]{font-size:13px}
+  .row2{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .preview{max-width:160px;border-radius:10px;margin-top:8px;display:none}
+  .pk-row{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #efebe3;border-radius:10px;margin-top:8px}
+  .pk-row img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+  .pk-row .t{flex:1;font-size:14px;font-weight:700}
+  .pk-row a{font-size:12px;color:#b14a5f}
+  .del{background:#fdeaea;color:#c0392b;padding:7px 12px;font-size:13px}
+  .msg{font-size:13px;margin-top:8px;min-height:16px}
 </style>
 </head>
 <body>
@@ -42,6 +58,23 @@
     <div class="stats" id="stats"></div>
     <table><thead><tr><th>닉네임</th><th>이메일</th><th>가입일</th><th>최근 접속</th><th>인증</th></tr></thead>
       <tbody id="rows"></tbody></table>
+
+    <!-- Editor's Pick 관리 -->
+    <div class="sec" id="pickSec">
+      <h2>📝 에디터 추천 글 (Editor's Pick)</h2>
+      <div class="hint">작성하면 홈에 노출되고 <b>/pick/주소</b>로 구글에 검색·인덱싱됩니다.</div>
+      <div class="fld"><label>제목 *</label><input id="pkTitle" type="text" placeholder="예: 가을에 어울리는 우디 향수 5선"></div>
+      <div class="fld"><label>한 줄 요약 (목록·미리보기에 표시)</label><input id="pkSummary" type="text" placeholder="선선해진 날씨에 딱인 따뜻한 우디 향수를 골랐어요"></div>
+      <div class="fld"><label>본문</label><textarea id="pkBody" placeholder="여기에 추천 내용을 자유롭게 작성하세요. 빈 줄로 문단을 나눌 수 있어요."></textarea></div>
+      <div class="fld"><label>대표 이미지 (직접 첨부)</label><input id="pkImage" type="file" accept="image/*"><img id="pkPreview" class="preview" alt="미리보기"></div>
+      <div class="fld"><label>주소(slug) — 비우면 자동 생성</label><input id="pkSlug" type="text" placeholder="autumn-woody-2026"></div>
+      <div class="row2">
+        <label style="font-weight:600;font-size:13px"><input id="pkPublished" type="checkbox" checked> 공개</label>
+        <button id="pkSave">저장 / 발행</button>
+      </div>
+      <div class="msg" id="pkMsg"></div>
+      <div id="pkList" style="margin-top:16px"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -59,10 +92,60 @@ async function load(key){
   $("#rows").innerHTML=(j.users||[]).map(u=>`<tr>
     <td>${u.nickname||"-"}</td><td>${u.email||"-"}</td><td>${fmt(u.created_at)}</td><td>${fmt(u.last_sign_in_at)}</td>
     <td><span class="badge ${u.confirmed?"ok":"no"}">${u.confirmed?"완료":"대기"}</span></td></tr>`).join("");
+  loadPicks();
 }
 $("#go").onclick=()=>load($("#key").value.trim());
 $("#key").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#go").click(); });
 const saved=sessionStorage.getItem("adminKey"); if(saved) load(saved);
+
+/* ---------- Editor's Pick 관리 ---------- */
+let pkImageData=null;
+const adminKey=()=>sessionStorage.getItem("adminKey")||"";
+$("#pkImage").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f){ pkImageData=null; return; }
+  const r=new FileReader();
+  r.onload=()=>{ pkImageData=r.result; const img=$("#pkPreview"); img.src=r.result; img.style.display="block"; };
+  r.readAsDataURL(f);
+});
+async function loadPicks(){
+  try{
+    const r=await fetch("/api/editor?key="+encodeURIComponent(adminKey()));
+    const j=await r.json(); if(!j.ok) return;
+    $("#pkList").innerHTML=(j.picks||[]).map(p=>`<div class="pk-row">
+      ${p.image_url?`<img src="${p.image_url}" alt="">`:""}
+      <div class="t">${p.title}${p.published?"":" <span class='badge no'>비공개</span>"}<br>
+        <a href="/pick/${encodeURIComponent(p.slug)}" target="_blank">/pick/${p.slug} ↗</a></div>
+      <button class="del" data-id="${p.id}">삭제</button>
+    </div>`).join("")||"<div class='hint'>아직 글이 없어요.</div>";
+    $("#pkList").querySelectorAll(".del").forEach(b=>b.onclick=()=>delPick(b.dataset.id));
+  }catch(e){}
+}
+async function savePick(){
+  const msg=$("#pkMsg"); const title=$("#pkTitle").value.trim();
+  if(!title){ msg.style.color="#c0392b"; msg.textContent="제목을 입력하세요."; return; }
+  msg.style.color="#7c7870"; msg.textContent="저장 중…";
+  const payload={
+    title, summary:$("#pkSummary").value.trim(), body:$("#pkBody").value,
+    slug:$("#pkSlug").value.trim()||undefined, published:$("#pkPublished").checked,
+  };
+  if(pkImageData) payload.image=pkImageData;
+  try{
+    const r=await fetch("/api/editor?key="+encodeURIComponent(adminKey()),{
+      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!j.ok){ msg.style.color="#c0392b"; msg.textContent="실패: "+(j.message||j.reason||""); return; }
+    msg.style.color="#2e8b57"; msg.textContent="저장됐어요! → /pick/"+j.pick.slug;
+    $("#pkTitle").value="";$("#pkSummary").value="";$("#pkBody").value="";$("#pkSlug").value="";
+    $("#pkImage").value="";$("#pkPreview").style.display="none";pkImageData=null;
+    loadPicks();
+  }catch(e){ msg.style.color="#c0392b"; msg.textContent="오류: "+e; }
+}
+async function delPick(id){
+  if(!confirm("이 글을 삭제할까요?")) return;
+  await fetch("/api/editor?key="+encodeURIComponent(adminKey())+"&id="+id,{method:"DELETE"});
+  loadPicks();
+}
+$("#pkSave").onclick=savePick;
 </script>
 </body>
 </html>
