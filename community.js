@@ -654,7 +654,7 @@ window.renderMyPage = async function(){
       <div class="mp-id"><b>${esc2(myNick())}님</b><small>${esc2(email)}${joined ? ` · ${joined} 가입` : ""}</small></div>
     </div>
     <div class="mp-stats">${stat(owned.length, "향수장")}${stat(wish.length, "위시")}${stat(diary.length, "캘린더")}${stat(reviews.length, "구매평")}</div>
-    <div class="prices-sec"><h3>🧴 나만의 향수장</h3>${ownedHTML}</div>
+    <div class="prices-sec"><h3>🧴 나만의 향수장 <a href="#/cabinet" style="font-size:13px;font-weight:700">관리·공유 →</a></h3>${ownedHTML}</div>
     <div class="prices-sec"><h3>💛 위시리스트</h3>${wishHTML}</div>
     <div class="prices-sec"><h3>📅 내 향수 캘린더</h3><div class="card pad mp-list">${diaryHTML}</div></div>
     <div class="prices-sec"><h3>✍️ 내가 쓴 글</h3><div class="card pad mp-list">${postsHTML}</div></div>
@@ -673,6 +673,97 @@ window.renderMyPage = async function(){
     window.renderMyPage();
   });
   root.querySelectorAll(".cc-card").forEach(c => c.onclick = () => { const p = perfById(c.dataset.k); if (p && window.openModal) window.openModal(p); });
+};
+
+/* =========================================================================
+   나만의 향수장 전용 화면 (#/cabinet = 내 것, #/cabinet/<uid> = 공유받은 것)
+   보유/위시 + 구매일·유통기한 기록 + 공유 링크
+   ========================================================================= */
+window.renderCabinet = async function(){
+  const root = document.getElementById("cabinetBody"); if (!root) return;
+  if (!sb){ root.innerHTML = `<div class="card pad pc-empty">불러올 수 없어요.</div>`; return; }
+  const seg = (location.hash || "").replace(/^#\/?/, "").split("/");
+  const targetUid = seg[1] || null;
+  const mine = !targetUid || (ME && targetUid === ME.id);
+
+  if (mine && !ME){
+    root.innerHTML = `<div class="sec-h"><span class="num">🧴 향수장</span><h2>나만의 향수장</h2></div>
+      <div class="card pad pc-empty">로그인하면 나만의 향수장을 만들고 공유할 수 있어요.<br><button class="btn" id="cbLogin" style="margin-top:12px">로그인 / 가입</button></div>`;
+    const b = document.getElementById("cbLogin"); if (b) b.onclick = openAuthModal; return;
+  }
+  root.innerHTML = `<div class="card pad pc-empty">불러오는 중…</div>`;
+
+  const uid = mine ? ME.id : targetUid;
+  let rows = [], ownerNick = "";
+  try { const { data } = await sb.from("collections").select("*").eq("user_id", uid).order("created_at", { ascending: false }); rows = data || []; } catch (e) {}
+  if (!mine){
+    rows = rows.filter(r => r.is_public);
+    try { const { data } = await sb.from("profiles").select("nickname").eq("id", uid).maybeSingle(); ownerNick = (data && data.nickname) || "향수러"; } catch (e) {}
+  }
+  const owned = rows.filter(r => r.status !== "wish"), wish = rows.filter(r => r.status === "wish");
+  const anyPublic = rows.some(r => r.is_public);
+
+  const expBadge = exp => {
+    if (!exp) return "";
+    const days = Math.round((new Date(exp) - new Date()) / 864e5);
+    if (days < 0) return `<span class="cb-exp over">⛔ 유통기한 지남</span>`;
+    if (days <= 180) return `<span class="cb-exp soon">⏳ D-${days}</span>`;
+    return `<span class="cb-exp ok">✓ ~${exp}</span>`;
+  };
+
+  const card = c => {
+    const p = perfById(c.perfume_key);
+    const art = (p && p._img) ? `<img src="${esc2(p._img)}" alt="" loading="lazy">` : `<span class="cc-ph">🧴</span>`;
+    const dates = mine
+      ? `<div class="cb-dates">
+           <label>🛍️ 구매일<input type="date" class="cb-d" data-f="bought_on" data-id="${c.id}" value="${c.bought_on || ""}"></label>
+           <label>⌛ 유통기한<input type="date" class="cb-d" data-f="expires_on" data-id="${c.id}" value="${c.expires_on || ""}"></label>
+         </div>`
+      : `<div class="cb-dates ro">${c.bought_on ? `<span>🛍️ ${c.bought_on} 구매</span>` : ""}${c.expires_on ? `<span>⌛ ~${c.expires_on}</span>` : ""}</div>`;
+    return `<div class="cb-card" data-k="${esc2(c.perfume_key)}">
+      ${mine ? `<button class="cc-del" data-id="${c.id}" title="삭제">✕</button>` : ""}
+      <div class="cb-top">
+        <div class="cb-art">${art}</div>
+        <div class="cb-info"><div class="cc-brand">${esc2(c.brand || (p && p.brand) || "")}</div>
+          <div class="cc-name">${esc2(c.perfume_name || (p && p.name) || c.perfume_key)}</div>
+          ${expBadge(c.expires_on)}</div>
+      </div>${dates}</div>`;
+  };
+
+  const ownedHTML = owned.length ? `<div class="cb-grid">${owned.map(card).join("")}</div>`
+    : `<div class="pc-empty">${mine ? "향수 상세에서 <b>🧴 향수장</b> 버튼을 눌러 담아보세요." : "공개된 향수가 없어요."}</div>`;
+  const wishHTML = wish.length ? `<div class="cb-grid">${wish.map(card).join("")}</div>` : (mine ? `<div class="pc-empty">위시리스트가 비어있어요.</div>` : "");
+
+  const shareBox = mine ? `
+    <div class="card pad cb-share">
+      <div class="cb-share-h">🔗 향수장 공유</div>
+      <p class="cb-share-p">${anyPublic ? "내 향수장이 <b>공개</b> 상태예요. 링크로 자랑해보세요!" : "공개로 바꾸면 링크로 다른 사람에게 보여줄 수 있어요."}</p>
+      <button class="btn ${anyPublic ? "ghost2" : ""}" id="cbShareToggle">${anyPublic ? "🔒 비공개로 전환" : "🔓 공개하고 링크 만들기"}</button>
+      ${anyPublic ? `<div class="cb-link"><input id="cbLink" readonly value="${location.origin}/#/cabinet/${uid}"><button id="cbCopy" class="btn">복사</button></div>` : ""}
+    </div>` : `<div class="sec-h"><span class="num">🧴 향수장</span><h2>${esc2(ownerNick)}님의 향수장</h2><p>다른 사람의 향수 컬렉션을 구경해보세요</p></div>`;
+
+  root.innerHTML = `
+    ${mine ? `<div class="sec-h"><span class="num">🧴 향수장</span><h2>나만의 향수장</h2><p>보유 향수와 구매일·유통기한을 기록하고 공유하세요</p></div>` : ""}
+    ${shareBox}
+    <div class="prices-sec"><h3>🧴 보유 향수 <small>(${owned.length})</small></h3>${ownedHTML}</div>
+    ${(mine || wish.length) ? `<div class="prices-sec"><h3>💛 위시리스트 <small>(${wish.length})</small></h3>${wishHTML}</div>` : ""}`;
+
+  root.querySelectorAll(".cb-card").forEach(c => c.addEventListener("click", e => {
+    if (e.target.closest("input,button,label")) return;
+    const p = perfById(c.dataset.k); if (p && window.openModal) window.openModal(p);
+  }));
+  if (!mine) return;
+
+  root.querySelectorAll(".cb-d").forEach(inp => inp.onchange = async () => {
+    const patch = {}; patch[inp.dataset.f] = inp.value || null;
+    await sb.from("collections").update(patch).eq("id", inp.dataset.id);
+    window.renderCabinet();
+  });
+  root.querySelectorAll(".cc-del").forEach(b => b.onclick = async e => { e.stopPropagation(); await sb.from("collections").delete().eq("id", b.dataset.id); window.renderCabinet(); });
+  const tg = document.getElementById("cbShareToggle");
+  if (tg) tg.onclick = async () => { await sb.from("collections").update({ is_public: !anyPublic }).eq("user_id", ME.id); window.renderCabinet(); };
+  const cp = document.getElementById("cbCopy");
+  if (cp) cp.onclick = () => { const i = document.getElementById("cbLink"); if (!i) return; i.select(); try { navigator.clipboard.writeText(i.value); cp.textContent = "복사됨!"; setTimeout(() => cp.textContent = "복사", 1500); } catch (e) {} };
 };
 
 /* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
@@ -808,11 +899,12 @@ function openAlerts(){
   wireClose(m);
 }
 
-/* 시세 워치 / 마이페이지 화면 진입 시 렌더 */
+/* 시세 워치 / 마이페이지 / 향수장 화면 진입 시 렌더 */
 function onPricesRoute(){
-  const r = (location.hash || "").replace(/^#\/?/, "");
+  const r = (location.hash || "").replace(/^#\/?/, "").split("/")[0];
   if (r === "prices" && window.renderPricesView) window.renderPricesView();
   if (r === "mypage" && window.renderMyPage) window.renderMyPage();
+  if (r === "cabinet" && window.renderCabinet) window.renderCabinet();
 }
 window.addEventListener("hashchange", onPricesRoute);
 

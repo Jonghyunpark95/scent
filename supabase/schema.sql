@@ -206,7 +206,14 @@ create table if not exists public.collections (
   created_at timestamptz default now(),
   unique (user_id, perfume_key)
 );
+-- 구매일 / 유통기한 / 공유(공개) 여부
+alter table public.collections add column if not exists bought_on date;
+alter table public.collections add column if not exists expires_on date;
+alter table public.collections add column if not exists is_public boolean default false;
 alter table public.collections enable row level security;
 drop policy if exists "collections_rw" on public.collections;
 create policy "collections_rw" on public.collections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- 공유: 공개(is_public=true)된 향수장은 누구나 읽기 (RLS는 여러 정책을 OR로 합침)
+drop policy if exists "collections_public_read" on public.collections;
+create policy "collections_public_read" on public.collections for select using (is_public);
 create index if not exists collections_user_idx on public.collections(user_id, status);

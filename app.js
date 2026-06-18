@@ -1112,8 +1112,8 @@ initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
 /* ---------- 페이지 라우터 (해시) ---------- */
-const ROUTES = ["home","analyze","worldcup","brands","diffusers","prices","community","encyclopedia","mypage"];
-function currentRoute(){ const h = (location.hash || "").replace(/^#\/?/, ""); return ROUTES.includes(h) ? h : "home"; }
+const ROUTES = ["home","analyze","worldcup","brands","diffusers","prices","community","encyclopedia","mypage","cabinet"];
+function currentRoute(){ const seg = (location.hash || "").replace(/^#\/?/, "").split("/")[0]; return ROUTES.includes(seg) ? seg : "home"; }
 function showView(){
   const v = currentRoute();
   $$(".view").forEach(el => { el.style.display = (el.id === "view-" + v) ? "" : "none"; });
