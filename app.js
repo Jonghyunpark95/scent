@@ -1048,7 +1048,7 @@ function openModal(p){
       ${p._api?"":`<button class="mact" id="trackBtn">📈 시세 추적</button>
       <button class="mact" id="ownBtn">🧴 향수장</button>
       <button class="mact" id="wishBtn">💛 위시</button>`}
-      <button class="mact" id="cardBtn">🖼️ 향수 카드 저장</button>
+      <button class="mact" id="cardBtn">🖼️ 카드 저장</button>
     </div>
     <div class="card-msg" id="cardMsg"></div>
     <div class="shopbox" id="shopBox"></div>

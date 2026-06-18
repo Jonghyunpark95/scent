@@ -25,7 +25,9 @@ async function uploadImage(dataUrl, slug, { SB, SR }){
   const ext = (mime.split("/")[1] || "png").replace(/[^a-z0-9]/g, "");
   const buf = Buffer.from(m[2], "base64");
   if (buf.length > 5 * 1024 * 1024) throw new Error("이미지가 너무 큽니다 (5MB 이하)");
-  const path = `${slug}-${Date.now()}.${ext}`;
+  // Supabase Storage 키는 ASCII만 허용 → 한글 slug 대신 영문/숫자 키 사용
+  const safe = String(slug).replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  const path = `pick-${safe || "img"}-${Date.now()}.${ext}`;
   const r = await fetch(`${SB}/storage/v1/object/${BUCKET}/${path}`, {
     method: "POST",
     headers: { ...sbHeaders(SR), "Content-Type": mime, "x-upsert": "true" },

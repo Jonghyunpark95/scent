@@ -621,7 +621,7 @@ footer a{color:var(--accent);text-decoration:none}
 
 /* 모달 액션 버튼 (시세추적·향수장·위시·카드저장) */
 .modal-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
-.mact{flex:1 1 calc(50% - 8px);min-width:120px;font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--cream);color:var(--ink);border-radius:12px;padding:12px 10px;transition:.15s}
+.mact{flex:1 1 calc(50% - 8px);min-width:100px;font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--cream);color:var(--ink);border-radius:12px;padding:12px 8px;transition:.15s;white-space:nowrap}
 .mact:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .mact.on{background:#eef7f0;color:#2e8b57;border-color:#bfe3cc}
 .card-msg{font-size:13px;color:var(--accent);margin-top:8px;min-height:16px}
@@ -657,8 +657,8 @@ footer a{color:var(--accent);text-decoration:none}
 .cb-exp.soon{background:#fff5e6;color:#b07d1a}
 .cb-exp.over{background:#fdeaea;color:#c0392b}
 .cb-dates{display:flex;gap:8px;margin-top:12px}
-.cb-dates label{flex:1;font-size:11px;color:var(--muted);font-weight:700;display:flex;flex-direction:column;gap:4px}
-.cb-dates input{font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink);background:var(--cream)}
+.cb-dates label{flex:1 1 0;min-width:0;font-size:11px;color:var(--muted);font-weight:700;display:flex;flex-direction:column;gap:4px}
+.cb-dates input{width:100%;min-width:0;box-sizing:border-box;font-family:inherit;font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:6px 8px;color:var(--ink);background:var(--cream)}
 .cb-dates.ro{flex-wrap:wrap}
 .cb-dates.ro span{font-size:12px;color:var(--muted);background:var(--cream);border-radius:999px;padding:4px 10px}
 .cb-add{font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 12px;margin-left:6px;vertical-align:middle}
