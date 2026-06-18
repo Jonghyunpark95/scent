@@ -420,10 +420,13 @@ async function initEditorPicks(){
     const j = await r.json();
     const picks = (j && j.ok && j.picks) || [];
     if(!picks.length) return;
+    // 링크: 블로그 링크가 있으면 바로 그쪽으로, 없으면 사이트 글 페이지
+    const href = p => p.link_url ? esc(p.link_url) : `/pick/${encodeURIComponent(p.slug)}`;
+    const ext = p => p.link_url ? ` target="_blank" rel="noopener"` : "";
     const hero = picks[0], rest = picks.slice(1,5);
     const heroHTML = `
-      <a class="pick-hero" href="/pick/${encodeURIComponent(hero.slug)}">
-        <div class="pick-hero-bg">${hero.image_url?`<img src="${esc(hero.image_url)}" alt="${esc(hero.title)}" loading="lazy">`:`<span class="pick-hero-emoji">✨</span>`}</div>
+      <a class="pick-hero" href="${href(hero)}"${ext(hero)}>
+        <div class="pick-hero-bg" data-pq="${esc(hero.image_query||"")}">${hero.image_url?`<img src="${esc(hero.image_url)}" alt="${esc(hero.title)}" loading="lazy">`:`<span class="pick-hero-emoji">✨</span>`}</div>
         <div class="pick-hero-text">
           <span class="pick-badge">✨ 에디터 추천</span>
           <b>${esc(hero.title)}</b>
@@ -432,13 +435,55 @@ async function initEditorPicks(){
         </div>
       </a>`;
     const restHTML = rest.length ? `<div class="pick-rail">${rest.map(p=>`
-      <a class="pick-card" href="/pick/${encodeURIComponent(p.slug)}">
-        <div class="pick-thumb">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy">`:"✨"}</div>
+      <a class="pick-card" href="${href(p)}"${ext(p)}>
+        <div class="pick-thumb" data-pq="${esc(p.image_query||"")}">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy">`:"✨"}</div>
         <div class="pick-info"><b>${esc(p.title)}</b><small>${esc((p.summary||"").slice(0,40))}</small></div>
       </a>`).join("")}</div>` : "";
     rail.innerHTML = heroHTML + restHTML;
     $("#editorPick").style.display = "";
+    // 업로드 이미지가 없고 '네이버 검색어'가 있으면 깔끔한 제품 이미지로 채움
+    [...rail.querySelectorAll("[data-pq]")].forEach(async el=>{
+      const q = el.getAttribute("data-pq");
+      if(!q || el.querySelector("img")) return;
+      try{ const d=await naverFetch("search",{q,display:10}); const hit=d&&d.items&&d.items.find(i=>i.image);
+        if(hit) el.innerHTML = `<img src="${esc(hit.image)}" alt="" loading="lazy">`; }catch(e){}
+    });
   }catch(e){}
+}
+
+/* =========================================================================
+   향수 카드 만들기 (전용 메뉴) — 검색 → 미리보기 → 이미지 저장
+   ========================================================================= */
+function initCardMaker(){
+  const input = $("#cardSearch"); if(!input) return;
+  const sug = $("#cardSuggest"), body = $("#cardMakerBody");
+  if(body) body.innerHTML = `<div class="card pad pc-empty">위에서 향수를 검색해 선택하면 카드가 만들어져요 🖼️</div>`;
+  function showSug(q){
+    const nq = norm(q);
+    if(!nq){ sug.classList.remove("open"); return; }
+    const list = PERFUMES.filter(p=> norm(p.name).includes(nq) || norm(p.brand).includes(nq)).slice(0,8);
+    sug.innerHTML = list.length ? list.map(suggestRow).join("") : `<div class="empty">결과가 없어요 🙂</div>`;
+    sug.classList.add("open");
+  }
+  input.addEventListener("input", e=>showSug(e.target.value));
+  input.addEventListener("focus", e=>{ if(e.target.value) showSug(e.target.value); });
+  document.addEventListener("click", e=>{ if(!sug.contains(e.target) && e.target!==input) sug.classList.remove("open"); });
+  sug.addEventListener("click", e=>{ const row=e.target.closest(".row"); if(!row) return; const p=findPerfume(row.dataset.id); sug.classList.remove("open"); input.value=""; if(p) renderCardPreview(p); });
+}
+async function renderCardPreview(p){
+  const body = $("#cardMakerBody"); if(!body) return;
+  body.innerHTML = `<div class="card pad pc-empty"><span class="spinner"></span> 카드 만드는 중…</div>`;
+  const svg = await buildPerfumeCardSVGAsync(p);
+  body.innerHTML = `<div class="cardmk">
+      <div class="cardmk-preview">${svg}</div>
+      <div class="cardmk-actions">
+        <button class="btn" id="cardmkSave">🖼️ 이미지로 저장 · 공유</button>
+        <button class="btn ghost2" id="cardmkOpen">🔎 향수 상세 보기</button>
+        <div class="share-msg" id="cardmkMsg"></div>
+      </div>
+    </div>`;
+  $("#cardmkSave").onclick = ()=>savePerfumeCard(p, $("#cardmkMsg"));
+  const ob=$("#cardmkOpen"); if(ob) ob.onclick=()=>openModal(p);
 }
 
 /* 최근 본 향수 (localStorage) */
@@ -935,51 +980,72 @@ function svgToPngBlob(svg){
 
 /* =========================================================================
    향수 노트 카드 (블로그 리뷰용 캡처/공유) — 1080×1350 SVG → PNG
-   사진 대신 노트 피라미드를 깔끔하게 (외부 이미지 CORS 문제 없이 저장 가능)
+   상단에 실제 제품 사진(네이버, 프록시로 data URL 임베드) + 노트 피라미드
    ========================================================================= */
-function buildPerfumeCardSVG(p){
+/* 외부(네이버) 이미지 → 같은 도메인 프록시로 받아 base64 data URL로 변환 */
+async function getImageDataURL(url){
+  const res = await fetch("/api/img?url=" + encodeURIComponent(url));
+  if(!res.ok) throw new Error("img proxy " + res.status);
+  const blob = await res.blob();
+  return await new Promise((resolve,reject)=>{ const fr=new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=reject; fr.readAsDataURL(blob); });
+}
+function buildPerfumeCardSVG(p, imgDataUrl){
   const W=1080, H=1350;
   const fam = famMeta(fam0(p));
+  const bx=300, by=130, bs=480, r=36;
+  const imageArea = imgDataUrl
+    ? `<clipPath id="pic"><rect x="${bx}" y="${by}" width="${bs}" height="${bs}" rx="${r}"/></clipPath>
+       <rect x="${bx}" y="${by}" width="${bs}" height="${bs}" rx="${r}" fill="#fff"/>
+       <image href="${imgDataUrl}" xlink:href="${imgDataUrl}" x="${bx}" y="${by}" width="${bs}" height="${bs}" preserveAspectRatio="xMidYMid slice" clip-path="url(#pic)"/>
+       <rect x="${bx}" y="${by}" width="${bs}" height="${bs}" rx="${r}" fill="none" stroke="#ece6dd" stroke-width="2"/>`
+    : `<rect x="${bx}" y="${by}" width="${bs}" height="${bs}" rx="${r}" fill="#fff" stroke="#ece6dd" stroke-width="2"/>
+       <text x="540" y="${by+bs/2+70}" font-size="200" text-anchor="middle">${esc(fam.emoji)}</text>`;
   const layers = p._flat
     ? [["노트", allNotes(p)]]
     : [["탑 노트 · 첫인상", p.top||[]], ["미들 노트 · 중심 향", p.middle||[]], ["베이스 노트 · 잔향", p.base||[]]];
-  let y = 720;
+  let y = 945;
   const blocks = layers.map(([label, keys])=>{
     const ks = (keys||[]).slice(0,6);
     const names = ks.map(k=>`${getNote(k).emoji} ${getNote(k).name}`).join("   ");
-    const block = `
-      <text x="90" y="${y}" font-size="30" font-weight="800" fill="${fam.color}">${esc(label)}</text>
-      <text x="90" y="${y+50}" font-size="34" fill="#1a1916">${esc(names || "정보 없음")}</text>`;
-    y += 130;
+    const block = `<text x="90" y="${y}" font-size="29" font-weight="800" fill="${fam.color}">${esc(label)}</text>
+      <text x="90" y="${y+44}" font-size="33" fill="#1a1916">${esc(names || "정보 없음")}</text>`;
+    y += 122;
     return block;
   }).join("");
-  const priceLine = p.price ? `<text x="540" y="640" font-size="38" fill="#7c7870" text-anchor="middle">${esc(won(p.price))} (50ml 추정)</text>` : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Pretendard, 'Apple SD Gothic Neo', sans-serif">
+  const priceTxt = p.price ? `   ·   ${won(p.price)}` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Pretendard, 'Apple SD Gothic Neo', sans-serif">
     <defs><radialGradient id="g" cx="50%" cy="0%" r="90%">
       <stop offset="0%" stop-color="#f5e6ea"/><stop offset="55%" stop-color="#fbf8f4"/><stop offset="100%" stop-color="#ffffff"/>
     </radialGradient></defs>
     <rect width="${W}" height="${H}" fill="url(#g)"/>
-    <text x="90" y="120" font-size="30" font-weight="800" fill="#b14a5f" letter-spacing="2">SCENTPEDIA · 향수 노트</text>
-    <text x="540" y="320" font-size="150" text-anchor="middle">${esc(fam.emoji)}</text>
-    <text x="540" y="430" font-size="40" fill="#7c7870" text-anchor="middle">${esc(p.brand)}${p._api?"":` · ${esc(p.gender)}`}</text>
-    <text x="540" y="520" font-size="68" font-weight="800" fill="#1a1916" text-anchor="middle">${esc(p.name)}</text>
-    ${p.en?`<text x="540" y="575" font-size="32" fill="#9b958c" text-anchor="middle">${esc(p.en)}</text>`:""}
-    ${priceLine}
-    <line x1="90" y1="690" x2="990" y2="690" stroke="#ece6dd" stroke-width="2"/>
+    <text x="540" y="95" font-size="30" font-weight="800" fill="#b14a5f" letter-spacing="2" text-anchor="middle">SCENTPEDIA · 향수 노트</text>
+    ${imageArea}
+    <text x="540" y="690" font-size="36" fill="#7c7870" text-anchor="middle">${esc(p.brand)}${p._api?"":` · ${esc(p.gender)}`}</text>
+    <text x="540" y="762" font-size="60" font-weight="800" fill="#1a1916" text-anchor="middle">${esc(p.name)}</text>
+    ${p.en?`<text x="540" y="812" font-size="30" fill="#9b958c" text-anchor="middle">${esc(p.en)}${esc(priceTxt)}</text>`:(p.price?`<text x="540" y="812" font-size="30" fill="#9b958c" text-anchor="middle">${esc(won(p.price))}</text>`:"")}
+    <line x1="90" y1="868" x2="990" y2="868" stroke="#ece6dd" stroke-width="2"/>
     ${blocks}
-    <text x="540" y="1295" font-size="32" font-weight="700" fill="#b14a5f" text-anchor="middle">scentpedia.co.kr · 향수 취향 찾기</text>
+    <text x="540" y="1312" font-size="32" font-weight="700" fill="#b14a5f" text-anchor="middle">scentpedia.co.kr · 향수 취향 찾기</text>
   </svg>`;
+}
+/* 실제 사진을 받아 임베드한 카드 SVG (비동기) */
+async function buildPerfumeCardSVGAsync(p){
+  let url = p._img;
+  if(!url && window.naverImageFor){ try{ url = await naverImageFor(p); if(url) p._img = url; }catch(e){} }
+  let imgData = null;
+  if(url){ try{ imgData = await getImageDataURL(url); }catch(e){ imgData = null; } }
+  return buildPerfumeCardSVG(p, imgData);
 }
 function fam0(p){
   // 대표 계열: 베이스>미들>탑 순으로 첫 노트의 family
   const k = (p.base&&p.base[0]) || (p.middle&&p.middle[0]) || (p.top&&p.top[0]) || (allNotes(p)[0]);
   return k ? (getNote(k).family || "woody") : "woody";
 }
-async function savePerfumeCard(p){
-  const msg=$("#cardMsg");
+async function savePerfumeCard(p, msgEl){
+  const msg=msgEl||$("#cardMsg");
   if(msg) msg.textContent="향수 카드를 만드는 중…";
   try{
-    const blob=await svgToPngBlob(buildPerfumeCardSVG(p));
+    const blob=await svgToPngBlob(await buildPerfumeCardSVGAsync(p));
     const fname=`scentpedia-${(p.name||"향수").replace(/\s+/g,"")}.png`;
     const file=new File([blob],fname,{type:"image/png"});
     if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -1118,13 +1184,14 @@ fillQuick();
 renderChips();
 renderFeatured();
 initEditorPicks();
+initCardMaker();
 renderRecent();
 initBrands();
 initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
 /* ---------- 페이지 라우터 (해시) ---------- */
-const ROUTES = ["home","analyze","worldcup","brands","diffusers","prices","community","encyclopedia","mypage","cabinet"];
+const ROUTES = ["home","analyze","worldcup","brands","diffusers","prices","community","encyclopedia","mypage","cabinet","card"];
 function currentRoute(){ const seg = (location.hash || "").replace(/^#\/?/, "").split("/")[0]; return ROUTES.includes(seg) ? seg : "home"; }
 function showView(){
   const v = currentRoute();

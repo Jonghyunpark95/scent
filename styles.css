@@ -682,6 +682,23 @@ footer a{color:var(--accent);text-decoration:none}
 .cb-dates.ro span{font-size:12px;color:var(--muted);background:var(--cream);border-radius:999px;padding:4px 10px}
 .cb-add{font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:6px 12px;margin-left:6px;vertical-align:middle}
 .cb-add:hover{background:var(--accent);color:#fff}
+/* 선반/목록 토글 */
+.cab-toggle{display:inline-flex;gap:4px;margin-left:8px;vertical-align:middle;background:var(--cream);border:1px solid var(--line);border-radius:999px;padding:3px}
+.cab-toggle button{font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border:0;background:none;color:var(--muted);border-radius:999px;padding:5px 11px}
+.cab-toggle button.on{background:#fff;color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* 가상 향수장 선반 (이케아 빌리장 느낌) */
+.shelf{background:linear-gradient(180deg,#e9d9c1 0%,#dcc8a9 100%);border:1px solid #cdb693;border-radius:16px;padding:18px 16px 4px;box-shadow:inset 0 2px 12px rgba(120,90,55,.18)}
+.shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:0 8px}
+.shelf-item{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;padding-top:8px;margin-bottom:22px;border-bottom:9px solid #b88c5e;border-radius:2px;box-shadow:0 5px 0 #9a7044,0 9px 10px rgba(120,80,40,.22)}
+.shelf-item:hover{transform:translateY(-2px)}
+.shelf-imgwrap{height:118px;display:flex;align-items:flex-end;justify-content:center}
+.cab-slot{display:flex;align-items:flex-end;justify-content:center;height:100%;font-size:46px}
+.cab-slot img{max-height:118px;max-width:80px;object-fit:contain;filter:drop-shadow(0 6px 7px rgba(60,40,20,.32))}
+.shelf-name{font-size:11px;font-weight:700;color:#5b4a36;margin:7px 3px 6px;line-height:1.3;text-align:center;max-height:30px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.shelf-item .cb-exp{margin-bottom:8px}
+.shelf-del{position:absolute;top:2px;right:2px;z-index:2;width:22px;height:22px;background:rgba(0,0,0,.45)}
+@media(max-width:480px){.shelf-grid{grid-template-columns:repeat(3,1fr)}}
 /* 향수장 추가 피커 */
 .cabpick-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line)}
 .cabpick-row:last-child{border-bottom:0}
@@ -689,6 +706,13 @@ footer a{color:var(--accent);text-decoration:none}
 .cabpick-b{font-size:16px;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;line-height:1}
 .cabpick-b.on{background:#eef7f0;border-color:#bfe3cc}
 .cabpick-b:hover{border-color:var(--accent)}
+
+/* 향수 카드 만들기 (전용 메뉴) */
+.cardmk{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:8px}
+.cardmk-preview{width:100%;max-width:380px;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.16)}
+.cardmk-preview svg{width:100%;height:auto;display:block}
+.cardmk-actions{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:380px}
+.cardmk-actions .btn{width:100%}
 
 /* 백과사전 — 네이버 쇼핑 상품 카드 (외부 링크) */
 .pcard.shop-card{text-decoration:none;color:inherit;display:flex;flex-direction:column}

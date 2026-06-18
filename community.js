@@ -730,9 +730,23 @@ window.renderCabinet = async function(){
       </div>${dates}</div>`;
   };
 
-  const ownedHTML = owned.length ? `<div class="cb-grid">${owned.map(card).join("")}</div>`
-    : `<div class="pc-empty">${mine ? "향수 상세에서 <b>🧴 향수장</b> 버튼을 눌러 담아보세요." : "공개된 향수가 없어요."}</div>`;
-  const wishHTML = wish.length ? `<div class="cb-grid">${wish.map(card).join("")}</div>` : (mine ? `<div class="pc-empty">위시리스트가 비어있어요.</div>` : "");
+  // 보기 모드: 선반(shelf) / 목록(list)
+  const view = (function(){ try{ return localStorage.getItem("cabview") || "shelf"; }catch(e){ return "shelf"; } })();
+  const imgSlot = c => { const p = perfById(c.perfume_key); const url = p && p._img;
+    return `<span class="cab-slot" data-imgk="${esc2(c.perfume_key)}">${url ? `<img src="${esc2(url)}" alt="">` : "🧴"}</span>`; };
+  const shelfItem = c => { const p = perfById(c.perfume_key);
+    return `<div class="shelf-item" data-k="${esc2(c.perfume_key)}">
+      ${mine ? `<button class="cc-del shelf-del" data-id="${c.id}" title="삭제">✕</button>` : ""}
+      <div class="shelf-imgwrap">${imgSlot(c)}</div>
+      <div class="shelf-name">${esc2(c.perfume_name || (p && p.name) || c.perfume_key)}</div>
+      ${expBadge(c.expires_on)}</div>`; };
+  const shelfHTML = items => `<div class="shelf"><div class="shelf-grid">${items.map(shelfItem).join("")}</div></div>`;
+  const body = (items, emptyMsg) => !items.length ? `<div class="pc-empty">${emptyMsg}</div>`
+    : (view === "list" ? `<div class="cb-grid">${items.map(card).join("")}</div>` : shelfHTML(items));
+
+  const ownedHTML = body(owned, mine ? "향수 상세에서 <b>🧴 향수장</b> 버튼을 눌러 담아보세요." : "공개된 향수가 없어요.");
+  const wishHTML = (mine || wish.length) ? body(wish, "위시리스트가 비어있어요.") : "";
+  const toggle = `<div class="cab-toggle"><button data-v="shelf" class="${view === "shelf" ? "on" : ""}">🪞 선반</button><button data-v="list" class="${view === "list" ? "on" : ""}">📋 목록</button></div>`;
 
   const shareBox = mine ? `
     <div class="card pad cb-share">
@@ -745,10 +759,23 @@ window.renderCabinet = async function(){
   root.innerHTML = `
     ${mine ? `<div class="sec-h"><span class="num">🧴 향수장</span><h2>나만의 향수장</h2><p>보유 향수와 구매일·유통기한을 기록하고 공유하세요</p></div>` : ""}
     ${shareBox}
-    <div class="prices-sec"><h3>🧴 보유 향수 <small>(${owned.length})</small>${mine ? ` <button class="cb-add" id="cbAdd">+ 향수 추가</button>` : ""}</h3>${ownedHTML}</div>
+    <div class="prices-sec"><h3>🧴 보유 향수 <small>(${owned.length})</small>${mine ? ` <button class="cb-add" id="cbAdd">+ 향수 추가</button>` : ""}${toggle}</h3>${ownedHTML}</div>
     ${(mine || wish.length) ? `<div class="prices-sec"><h3>💛 위시리스트 <small>(${wish.length})</small></h3>${wishHTML}</div>` : ""}`;
 
-  root.querySelectorAll(".cb-card").forEach(c => c.addEventListener("click", e => {
+  // 실제 향수 이미지 지연 로딩 (네이버)
+  (async function loadCabImages(){
+    for (const s of [...root.querySelectorAll(".cab-slot")]){
+      const p = perfById(s.dataset.imgk); if (!p) continue;
+      if (p._img){ if (!s.querySelector("img")) s.innerHTML = `<img src="${esc2(p._img)}" alt="">`; continue; }
+      if (!window.naverImageFor) continue;
+      try{ const u = await naverImageFor(p); if (u){ p._img = u; s.innerHTML = `<img src="${esc2(u)}" alt="">`; } }catch(e){}
+    }
+  })();
+
+  // 선반/목록 토글
+  root.querySelectorAll(".cab-toggle button").forEach(b => b.onclick = e => { e.stopPropagation(); try{ localStorage.setItem("cabview", b.dataset.v); }catch(_){} window.renderCabinet(); });
+  // 카드/선반 클릭 → 상세
+  root.querySelectorAll(".cb-card, .shelf-item").forEach(c => c.addEventListener("click", e => {
     if (e.target.closest("input,button,label")) return;
     const p = perfById(c.dataset.k); if (p && window.openModal) window.openModal(p);
   }));
