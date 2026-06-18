@@ -1,7 +1,7 @@
 /* =========================================================================
    Scent Finder — app.js
    - 좋아하는 향수 선택 → 취향 분석 / 추천 / 베이스향 설명 / 브랜드 모음
-   - 향수병 일러스트 자동 생성(SVG)  + RapidAPI 사진/검색 자동 연동(/api/fragrance)
+   - 향수병 일러스트 자동 생성(SVG) + 네이버 쇼핑 연동(이미지/구매처/백과사전 검색)
    ========================================================================= */
 "use strict";
 
@@ -24,7 +24,7 @@ function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i
 function esc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
 /* =========================================================================
-   이미지 — RapidAPI 실제 제품 사진 우선, 없으면 미니멀 플레이스홀더
+   이미지 — 네이버 쇼핑 실제 제품 사진 우선, 없으면 미니멀 플레이스홀더
    ========================================================================= */
 function getEnTerm(p){ return p.en || (typeof EN_NAMES !== "undefined" && EN_NAMES[p.id]) || p.name; }
 function placeholderHTML(){
@@ -449,7 +449,7 @@ function renderRecent(){
 }
 
 /* =========================================================================
-   향수 백과사전 검색 (내장 DB + RapidAPI)
+   향수 백과사전 검색 (내장 DB + 네이버 쇼핑)
    ========================================================================= */
 const encInput = $("#encSearch");
 let encTimer;
@@ -459,23 +459,47 @@ encInput.addEventListener("input", e=>{
   if (!q){ $("#encGrid").innerHTML=""; return; }
   // 즉시 내장 DB 결과
   const local = PERFUMES.filter(p=> norm(p.name).includes(norm(q)) || norm(p.brand).includes(norm(q)));
-  $("#encGrid").innerHTML = local.length ? local.map(p=>pcard(p,null)).join("")
-    : `<div class="empty-state">내장 DB에 없어요. <span class="spinner"></span> RapidAPI에서 찾는 중…</div>`;
+  $("#encGrid").innerHTML = (local.length ? local.map(p=>pcard(p,null)).join("") : "")
+    + `<div class="empty-state" id="encMore"><span class="spinner"></span> 네이버 쇼핑에서 찾는 중…</div>`;
   observeImages($("#encGrid"));
-  // API 검색 (디바운스)
-  encTimer = setTimeout(()=>encSearchAPI(q, local), 450);
+  // 네이버 쇼핑 검색 (디바운스)
+  encTimer = setTimeout(()=>encSearchNaver(q, local), 400);
 });
 
-async function encSearchAPI(q, local){
-  const data = await apiFetch("search", { q });
-  if (!data || !data.results || !data.results.length){
-    if (!local.length) $("#encGrid").innerHTML = `<div class="empty-state">"${esc(q)}" 결과가 없어요. (RapidAPI 키 미설정 시 내장 DB만 검색됩니다)</div>`;
+async function encSearchNaver(q, local){
+  const more = $("#encMore");
+  if (!NAVER.enabled){
+    if (more) more.outerHTML = local.length ? "" : `<div class="empty-state">"${esc(q)}" 내장 DB에 없어요.</div>`;
     return;
   }
-  // API 결과를 카드로 (내장 DB 우선 표시 후 이어붙임)
-  const apiCards = data.results.map(apiToPerfume).map(p=>pcard(p,null)).join("");
-  $("#encGrid").innerHTML = local.map(p=>pcard(p,null)).join("") + apiCards;
-  observeImages($("#encGrid"));
+  const data = await naverFetch("search", { q, display: 24, sort: "sim", minPrice: 20000 });
+  const items = (data && data.items) || [];
+  if (more) more.remove();
+  if (!items.length){
+    if (!local.length) $("#encGrid").innerHTML = `<div class="empty-state">"${esc(q)}" 결과가 없어요 🙂</div>`;
+    return;
+  }
+  // 내장 DB와 중복되는 이름은 제외
+  const seen = new Set(local.map(p=>norm(p.name)));
+  const cards = items.filter(it=>{ const n=norm(it.title); if(!n||seen.has(n)) return false; seen.add(n); return true; })
+    .map(naverProductCard).join("");
+  $("#encGrid").innerHTML = local.map(p=>pcard(p,null)).join("") + cards;
+}
+
+/* 네이버 쇼핑 상품 → 외부 링크 카드 (노트 정보는 없고, 구매처로 연결) */
+function naverProductCard(it){
+  const price = it.price ? pf(it.price) : "";
+  const img = it.image
+    ? `<img src="${esc(it.image)}" alt="${esc(it.title)}" loading="lazy" onerror="this.outerHTML=window.__ph()">`
+    : placeholderHTML();
+  return `<a class="pcard shop-card" href="${esc(it.link)}" target="_blank" rel="noopener nofollow sponsored">
+    <div class="art">${img}</div>
+    <div class="info">
+      <div class="brand">🛒 ${esc(it.mall || it.brand || "네이버 쇼핑")}</div>
+      <div class="name">${esc(it.title)}</div>
+      ${price ? `<div class="price">${price}</div>` : ""}
+    </div>
+  </a>`;
 }
 
 /* 영어 노트명/슬러그 → 내장 NOTES 키 (한글명·비유·이모지 재사용용) */
@@ -526,41 +550,12 @@ function apiToPerfume(r){
   return p;
 }
 
-/* 추천 카드에 API 사진 보강 */
-async function enrichRecImages(recs){
-  if (!API.enabled) return;
-  for (const r of recs){
-    if (r.p._img) continue;
-    const data = await apiFetch("search", { q: r.p.name, limit: 1 });
-    const hit = data && data.results && data.results[0];
-    const img = hit && hit.image;
-    if (img){
-      r.p._img = img;
-      const card = $(`#recGrid .pcard[data-id="${r.p.id}"] .art`);
-      if (card){ const m = card.querySelector(".match"); card.innerHTML = (m?m.outerHTML:"") + artHTML(r.p); }
-    }
-  }
-}
-
 /* =========================================================================
-   RapidAPI 프록시 호출 (/api/fragrance) — 키는 서버(Vercel)에만 존재
+   (RapidAPI 제거 — 네이버 쇼핑으로 일원화)
+   API.enabled는 항상 false로 두어, 과거 API 분기들은 자동으로 비활성화됨.
    ========================================================================= */
 const API = { enabled: false };
-async function apiFetch(action, params){
-  try{
-    const qs = new URLSearchParams({ action, ...params }).toString();
-    const res = await fetch(`/api/fragrance?${qs}`);
-    if (res.status === 429){ API.enabled = false; return null; }  // 월 한도 초과 → 더 호출 안 함
-    if (!res.ok) throw new Error("api " + res.status);
-    const json = await res.json();
-    if (json && json.ok === false) return null;
-    return json;
-  }catch(err){ return null; }
-}
-async function pingAPI(){
-  const data = await apiFetch("status", {});
-  API.enabled = !!(data && data.configured);
-}
+function apiFetch(){ return Promise.resolve(null); }   // 호출돼도 무해 (no-op)
 
 /* =========================================================================
    네이버 쇼핑 (구매처·최저가·디퓨저) — /api/shop
@@ -1036,7 +1031,6 @@ renderFeatured();
 initEditorPicks();
 renderRecent();
 initBrands();
-pingAPI();
 initWeather();
 pingNaver().then(()=>{ initDiffusers(); initNews(); initNaverHot(); observeImages(document); });
 
