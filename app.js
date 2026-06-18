@@ -420,11 +420,23 @@ async function initEditorPicks(){
     const j = await r.json();
     const picks = (j && j.ok && j.picks) || [];
     if(!picks.length) return;
-    rail.innerHTML = picks.slice(0,6).map(p=>`
+    const hero = picks[0], rest = picks.slice(1,5);
+    const heroHTML = `
+      <a class="pick-hero" href="/pick/${encodeURIComponent(hero.slug)}">
+        <div class="pick-hero-bg">${hero.image_url?`<img src="${esc(hero.image_url)}" alt="${esc(hero.title)}" loading="lazy">`:`<span class="pick-hero-emoji">✨</span>`}</div>
+        <div class="pick-hero-text">
+          <span class="pick-badge">✨ 에디터 추천</span>
+          <b>${esc(hero.title)}</b>
+          ${hero.summary?`<p>${esc(hero.summary.slice(0,72))}</p>`:""}
+          <span class="pick-cta">읽어보기 →</span>
+        </div>
+      </a>`;
+    const restHTML = rest.length ? `<div class="pick-rail">${rest.map(p=>`
       <a class="pick-card" href="/pick/${encodeURIComponent(p.slug)}">
         <div class="pick-thumb">${p.image_url?`<img src="${esc(p.image_url)}" alt="${esc(p.title)}" loading="lazy">`:"✨"}</div>
-        <div class="pick-info"><b>${esc(p.title)}</b><small>${esc((p.summary||"").slice(0,48))}</small></div>
-      </a>`).join("");
+        <div class="pick-info"><b>${esc(p.title)}</b><small>${esc((p.summary||"").slice(0,40))}</small></div>
+      </a>`).join("")}</div>` : "";
+    rail.innerHTML = heroHTML + restHTML;
     $("#editorPick").style.display = "";
   }catch(e){}
 }
