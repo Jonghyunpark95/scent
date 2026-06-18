@@ -86,7 +86,20 @@ async function ensureAuthed(actionLabel){
 function renderAuthSlot(){
   const slot = document.getElementById("authSlot"); if (!slot) return;
   if (ME){
-    slot.innerHTML = `<button class="bell" id="bellBtn" title="가격 알림">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></button><span class="auth-nick">${esc2(myNick())}님${isGuest()?" <small style='color:var(--muted);font-weight:600'>(비회원)</small>":""}</span><button class="auth-btn ghost" id="logoutBtn">로그아웃</button>`;
+    slot.innerHTML = `<button class="bell" id="bellBtn" title="가격 알림">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></button>
+      <div class="auth-menu">
+        <button class="auth-nick" id="nickBtn">${esc2(myNick())}님${isGuest()?" <small>(비회원)</small>":""} <span class="caret">▾</span></button>
+        <div class="auth-drop" id="authDrop">
+          <a href="#/mypage" id="mypageLink">👤 마이페이지</a>
+          <a href="#/prices">📈 시세 워치</a>
+          <button id="logoutBtn">로그아웃</button>
+        </div>
+      </div>`;
+    const drop = document.getElementById("authDrop");
+    const nick = document.getElementById("nickBtn");
+    nick.onclick = (e) => { e.stopPropagation(); drop.classList.toggle("open"); };
+    drop.addEventListener("click", () => drop.classList.remove("open"));   // 항목 누르면 닫힘
+    if (!window.__authDropClose){ window.__authDropClose = true; document.addEventListener("click", () => { const d = document.getElementById("authDrop"); if (d) d.classList.remove("open"); }); }
     document.getElementById("logoutBtn").onclick = async () => { await sb.auth.signOut(); };
     document.getElementById("bellBtn").onclick = openAlerts;
     checkAlerts();
@@ -576,6 +589,66 @@ window.renderPricesView = async function(){
   };
 };
 
+/* =========================================================================
+   마이페이지 (헤더 닉네임 → 마이페이지)
+   내 활동 요약 · 향수 캘린더 · 내가 쓴 글 · 내 구매평
+   ========================================================================= */
+window.renderMyPage = async function(){
+  const root = document.getElementById("mypageBody"); if (!root) return;
+  if (!sb){ root.innerHTML = `<div class="card pad pc-empty">불러올 수 없어요.</div>`; return; }
+  if (!ME){
+    root.innerHTML = `<div class="card pad pc-empty">로그인하면 내 활동을 모아볼 수 있어요.<br><button class="btn" id="mpLogin" style="margin-top:12px">로그인 / 가입</button></div>`;
+    const b = document.getElementById("mpLogin"); if (b) b.onclick = openAuthModal; return;
+  }
+  root.innerHTML = `<div class="card pad pc-empty">불러오는 중…</div>`;
+
+  const uid = ME.id;
+  const [diaryR, postsR, reviewsR, alertsR] = await Promise.all([
+    sb.from("diary").select("*").eq("user_id", uid).order("worn_on", { ascending: false }).limit(80),
+    sb.from("posts").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(80),
+    sb.from("reviews").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(80),
+    sb.from("price_alerts").select("perfume_key").eq("user_id", uid),
+  ]);
+  const diary = diaryR.data || [], posts = postsR.data || [], reviews = reviewsR.data || [], alerts = alertsR.data || [];
+  const joined = ME.created_at ? new Date(ME.created_at).toLocaleDateString("ko-KR") : "";
+  const email = isGuest() ? "비회원 계정" : (ME.email || "-");
+  const BOARD = { free: "자유게시판", collection: "컬렉션 자랑" };
+  const d2 = s => (s || "").slice(0, 10);
+  const stat = (n, l) => `<div class="mp-stat"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+
+  const diaryHTML = diary.length ? diary.map(d => `<div class="mp-row" data-t="diary" data-id="${d.id}">
+      <div><span class="mp-date">${d2(d.worn_on)}</span> <b>${esc2(d.perfume_name || "")}</b>${d.memo ? ` <span class="mp-memo">${esc2(d.memo)}</span>` : ""}</div>
+      <button class="mp-del" data-t="diary" data-id="${d.id}">✕</button></div>`).join("")
+    : `<div class="pc-empty">아직 향수 캘린더 기록이 없어요. <a href="#/community">커뮤니티</a>에서 오늘 뿌린 향수를 기록해보세요.</div>`;
+
+  const postsHTML = posts.length ? posts.map(p => `<div class="mp-row" data-t="posts" data-id="${p.id}">
+      <div><span class="mp-tag">${esc2(BOARD[p.board] || p.board || "글")}</span> <b>${esc2(p.title)}</b> <span class="mp-date">${d2(p.created_at)}</span></div>
+      <button class="mp-del" data-t="posts" data-id="${p.id}">✕</button></div>`).join("")
+    : `<div class="pc-empty">아직 쓴 글이 없어요. <a href="#/community">커뮤니티</a>에 첫 글을 남겨보세요.</div>`;
+
+  const reviewsHTML = reviews.length ? reviews.map(r => `<div class="mp-row" data-t="reviews" data-id="${r.id}">
+      <div><b>${esc2(r.perfume_name || "")}</b> <span class="mp-star">${"★".repeat(r.rating || 0)}</span>${r.body ? ` <span class="mp-memo">${esc2(r.body)}</span>` : ""}</div>
+      <button class="mp-del" data-t="reviews" data-id="${r.id}">✕</button></div>`).join("")
+    : `<div class="pc-empty">아직 작성한 구매평이 없어요.</div>`;
+
+  root.innerHTML = `
+    <div class="card pad mp-head">
+      <div class="mp-avatar">${esc2((myNick()[0] || "🙂").toUpperCase())}</div>
+      <div class="mp-id"><b>${esc2(myNick())}님</b><small>${esc2(email)}${joined ? ` · ${joined} 가입` : ""}</small></div>
+    </div>
+    <div class="mp-stats">${stat(diary.length, "캘린더")}${stat(posts.length, "내 글")}${stat(reviews.length, "구매평")}${stat(alerts.length, "목표가 알림")}</div>
+    <div class="prices-sec"><h3>📅 내 향수 캘린더</h3><div class="card pad mp-list">${diaryHTML}</div></div>
+    <div class="prices-sec"><h3>✍️ 내가 쓴 글</h3><div class="card pad mp-list">${postsHTML}</div></div>
+    <div class="prices-sec"><h3>⭐ 내 구매평</h3><div class="card pad mp-list">${reviewsHTML}</div></div>
+    <div class="prices-sec"><h3>🔔 목표가 알림</h3><div class="card pad"><a class="btn ghost2" href="#/prices">시세 워치에서 내 알림 관리하기 →</a></div></div>`;
+
+  root.querySelectorAll(".mp-del").forEach(b => b.onclick = async () => {
+    if (!confirm("이 항목을 삭제할까요?")) return;
+    await sb.from(b.dataset.t).delete().eq("id", b.dataset.id);
+    window.renderMyPage();
+  });
+};
+
 /* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
 async function registerTracked(id){
   if (!sb) return;
@@ -687,9 +760,11 @@ function openAlerts(){
   wireClose(m);
 }
 
-/* 시세 워치 화면 진입 시 렌더 (사이드바 → 📈 시세 워치) */
+/* 시세 워치 / 마이페이지 화면 진입 시 렌더 */
 function onPricesRoute(){
-  if ((location.hash || "").replace(/^#\/?/, "") === "prices" && window.renderPricesView) window.renderPricesView();
+  const r = (location.hash || "").replace(/^#\/?/, "");
+  if (r === "prices" && window.renderPricesView) window.renderPricesView();
+  if (r === "mypage" && window.renderMyPage) window.renderMyPage();
 }
 window.addEventListener("hashchange", onPricesRoute);
 

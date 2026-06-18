@@ -312,7 +312,16 @@ footer a{color:var(--accent);text-decoration:none}
 /* 로그인 상태 (헤더) */
 .auth-slot{margin-left:14px;display:flex;align-items:center;gap:8px}
 @media(max-width:560px){.auth-slot{margin-left:auto}}
-.auth-nick{font-size:13px;font-weight:700;color:var(--ink)}
+/* 닉네임 드롭다운 메뉴 (모바일에서 글자 세로로 늘어지던 문제 해결) */
+.auth-menu{position:relative}
+.auth-nick{font-size:13px;font-weight:700;color:var(--ink);background:transparent;border:0;cursor:pointer;font-family:inherit;white-space:nowrap;display:inline-flex;align-items:center;gap:3px;max-width:120px;overflow:hidden;text-overflow:ellipsis;padding:6px 4px}
+.auth-nick small{color:var(--muted);font-weight:600}
+.auth-nick .caret{font-size:10px;color:var(--muted)}
+.auth-drop{position:absolute;top:calc(100% + 6px);right:0;min-width:150px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.12);padding:6px;display:none;z-index:60}
+.auth-drop.open{display:block}
+.auth-drop a,.auth-drop button{display:block;width:100%;text-align:left;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);background:none;border:0;cursor:pointer;padding:10px 12px;border-radius:8px;text-decoration:none}
+.auth-drop a:hover,.auth-drop button:hover{background:var(--cream)}
+.auth-drop #logoutBtn{color:#c0392b;border-top:1px solid var(--line);margin-top:4px}
 .auth-btn{font-family:inherit;font-weight:700;font-size:13px;cursor:pointer;border:0;border-radius:999px;padding:8px 14px;background:var(--ink);color:#fff}
 .auth-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
 .auth-btn:hover{opacity:.9}
@@ -587,3 +596,25 @@ footer a{color:var(--accent);text-decoration:none}
 .pa-foot{margin-top:12px;text-align:right}
 .pa-allmute{font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;border:0;background:none;color:var(--muted);text-decoration:underline}
 .pa-allmute:hover{color:#c0392b}
+
+/* =========================================================================
+   마이페이지
+   ========================================================================= */
+.mp-head{display:flex;align-items:center;gap:14px}
+.mp-avatar{width:54px;height:54px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:24px;font-weight:800;flex-shrink:0}
+.mp-id b{font-size:18px;font-weight:800;display:block}
+.mp-id small{color:var(--muted);font-size:13px}
+.mp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0 8px}
+.mp-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 8px;text-align:center}
+.mp-stat .n{font-size:22px;font-weight:800;color:var(--accent)}
+.mp-stat .l{font-size:12px;color:var(--muted);margin-top:3px}
+.mp-list{padding-top:6px;padding-bottom:6px}
+.mp-row{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:11px 2px;border-bottom:1px solid var(--line)}
+.mp-row:last-child{border-bottom:0}
+.mp-row>div{min-width:0;flex:1;font-size:14px;line-height:1.5}
+.mp-date{font-size:12px;color:var(--muted)}
+.mp-tag{font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:2px 8px}
+.mp-star{color:#f5b301}
+.mp-memo{color:var(--muted);font-size:13px}
+.mp-del{flex-shrink:0;background:none;border:0;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 8px;border-radius:8px}
+.mp-del:hover{background:#fdeaea;color:#c0392b}
