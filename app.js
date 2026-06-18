@@ -920,6 +920,67 @@ function svgToPngBlob(svg){
     img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
   });
 }
+
+/* =========================================================================
+   향수 노트 카드 (블로그 리뷰용 캡처/공유) — 1080×1350 SVG → PNG
+   사진 대신 노트 피라미드를 깔끔하게 (외부 이미지 CORS 문제 없이 저장 가능)
+   ========================================================================= */
+function buildPerfumeCardSVG(p){
+  const W=1080, H=1350;
+  const fam = famMeta(fam0(p));
+  const layers = p._flat
+    ? [["노트", allNotes(p)]]
+    : [["탑 노트 · 첫인상", p.top||[]], ["미들 노트 · 중심 향", p.middle||[]], ["베이스 노트 · 잔향", p.base||[]]];
+  let y = 720;
+  const blocks = layers.map(([label, keys])=>{
+    const ks = (keys||[]).slice(0,6);
+    const names = ks.map(k=>`${getNote(k).emoji} ${getNote(k).name}`).join("   ");
+    const block = `
+      <text x="90" y="${y}" font-size="30" font-weight="800" fill="${fam.color}">${esc(label)}</text>
+      <text x="90" y="${y+50}" font-size="34" fill="#1a1916">${esc(names || "정보 없음")}</text>`;
+    y += 130;
+    return block;
+  }).join("");
+  const priceLine = p.price ? `<text x="540" y="640" font-size="38" fill="#7c7870" text-anchor="middle">${esc(won(p.price))} (50ml 추정)</text>` : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="Pretendard, 'Apple SD Gothic Neo', sans-serif">
+    <defs><radialGradient id="g" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="#f5e6ea"/><stop offset="55%" stop-color="#fbf8f4"/><stop offset="100%" stop-color="#ffffff"/>
+    </radialGradient></defs>
+    <rect width="${W}" height="${H}" fill="url(#g)"/>
+    <text x="90" y="120" font-size="30" font-weight="800" fill="#b14a5f" letter-spacing="2">SCENTPEDIA · 향수 노트</text>
+    <text x="540" y="320" font-size="150" text-anchor="middle">${esc(fam.emoji)}</text>
+    <text x="540" y="430" font-size="40" fill="#7c7870" text-anchor="middle">${esc(p.brand)}${p._api?"":` · ${esc(p.gender)}`}</text>
+    <text x="540" y="520" font-size="68" font-weight="800" fill="#1a1916" text-anchor="middle">${esc(p.name)}</text>
+    ${p.en?`<text x="540" y="575" font-size="32" fill="#9b958c" text-anchor="middle">${esc(p.en)}</text>`:""}
+    ${priceLine}
+    <line x1="90" y1="690" x2="990" y2="690" stroke="#ece6dd" stroke-width="2"/>
+    ${blocks}
+    <text x="540" y="1295" font-size="32" font-weight="700" fill="#b14a5f" text-anchor="middle">scentpedia.co.kr · 향수 취향 찾기</text>
+  </svg>`;
+}
+function fam0(p){
+  // 대표 계열: 베이스>미들>탑 순으로 첫 노트의 family
+  const k = (p.base&&p.base[0]) || (p.middle&&p.middle[0]) || (p.top&&p.top[0]) || (allNotes(p)[0]);
+  return k ? (getNote(k).family || "woody") : "woody";
+}
+async function savePerfumeCard(p){
+  const msg=$("#cardMsg");
+  if(msg) msg.textContent="향수 카드를 만드는 중…";
+  try{
+    const blob=await svgToPngBlob(buildPerfumeCardSVG(p));
+    const fname=`scentpedia-${(p.name||"향수").replace(/\s+/g,"")}.png`;
+    const file=new File([blob],fname,{type:"image/png"});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title:`${p.brand} ${p.name}`, text:`${p.brand} ${p.name} 향수 노트 · scentpedia.co.kr` });
+      if(msg) msg.textContent="";
+    } else {
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=url; a.download=fname; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      if(msg) msg.textContent="카드 이미지를 저장했어요! 블로그·SNS에 올려보세요 🎁";
+    }
+  }catch(e){ if(msg) msg.textContent="카드 생성 실패. 화면을 캡처해 사용해 주세요 🙏"; }
+}
 async function shareResultImage(){
   const msg=$("#shareMsg");
   if(!_shareData){ if(msg) msg.textContent="먼저 취향을 분석해 주세요 🙂"; return; }
@@ -983,7 +1044,13 @@ function openModal(p){
     ${meta.length?`<p style="color:var(--muted);margin-top:12px;font-size:13px">${meta.join("  ·  ")}</p>`:""}
     ${p.desc?`<p style="color:var(--muted);margin-top:8px">${esc(p.desc)}</p>`:""}
     <div class="notelist">${layerHTML}</div>
-    ${p._api?"":`<button class="track-btn" id="trackBtn">📈 이 향수 시세 추적하기</button>`}
+    <div class="modal-actions">
+      ${p._api?"":`<button class="mact" id="trackBtn">📈 시세 추적</button>
+      <button class="mact" id="ownBtn">🧴 향수장</button>
+      <button class="mact" id="wishBtn">💛 위시</button>`}
+      <button class="mact" id="cardBtn">🖼️ 향수 카드 저장</button>
+    </div>
+    <div class="card-msg" id="cardMsg"></div>
     <div class="shopbox" id="shopBox"></div>
     <div class="pricebox" id="priceBox" style="display:none"></div>
     <div class="reviewbox" id="reviewBox"></div>`;
@@ -991,9 +1058,19 @@ function openModal(p){
   $("#modalClose").onclick = closeModal;
   const tb=$("#trackBtn");
   if(tb && window.toggleWatch){
-    if(window.isWatched && window.isWatched(p.id)){ tb.classList.add("on"); tb.textContent="✓ 시세 추적 중 · 홈에서 보기"; }
-    tb.onclick=()=>window.toggleWatch(p, tb);
+    if(window.isWatched && window.isWatched(p.id)){ tb.classList.add("on"); tb.textContent="✓ 추적 중"; }
+    tb.onclick=()=>{ window.toggleWatch(p, tb); };
   }
+  // 향수장 / 위시리스트
+  const setCollBtn=(btn,active,onText,offText)=>{ if(!btn) return; btn.classList.toggle("on",active); btn.textContent=active?onText:offText; };
+  const ownBtn=$("#ownBtn"), wishBtn=$("#wishBtn");
+  const cur = window.inCollection ? window.inCollection(p.id) : null;
+  setCollBtn(ownBtn, cur==="owned", "✓ 향수장에 있음", "🧴 향수장");
+  setCollBtn(wishBtn, cur==="wish", "✓ 위시리스트", "💛 위시");
+  if(ownBtn) ownBtn.onclick=async()=>{ const n=await window.toggleCollection(p,"owned",ownBtn); setCollBtn(ownBtn,n==="owned","✓ 향수장에 있음","🧴 향수장"); setCollBtn(wishBtn,n==="wish","✓ 위시리스트","💛 위시"); };
+  if(wishBtn) wishBtn.onclick=async()=>{ const n=await window.toggleCollection(p,"wish",wishBtn); setCollBtn(wishBtn,n==="wish","✓ 위시리스트","💛 위시"); setCollBtn(ownBtn,n==="owned","✓ 향수장에 있음","🧴 향수장"); };
+  const cardBtn=$("#cardBtn");
+  if(cardBtn) cardBtn.onclick=()=>savePerfumeCard(p);
   if (!p._img && NAVER.enabled){
     naverImageFor(p).then(u=>{ if(u){ p._img=u; const t=$("#modalBody .thumb"); if(t) t.innerHTML=artHTML(p); } });
   }

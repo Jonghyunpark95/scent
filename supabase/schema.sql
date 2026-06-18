@@ -193,3 +193,20 @@ create index if not exists editor_picks_pub_idx on public.editor_picks(published
 insert into storage.buckets (id, name, public)
 values ('editor', 'editor', true)
 on conflict (id) do update set public = true;
+
+-- 12) 나만의 향수장 (보유/위시리스트)
+--     status: 'owned'(보유) | 'wish'(위시리스트)
+create table if not exists public.collections (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  perfume_key text not null,
+  perfume_name text,
+  brand text,
+  status text not null default 'owned',
+  created_at timestamptz default now(),
+  unique (user_id, perfume_key)
+);
+alter table public.collections enable row level security;
+drop policy if exists "collections_rw" on public.collections;
+create policy "collections_rw" on public.collections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index if not exists collections_user_idx on public.collections(user_id, status);

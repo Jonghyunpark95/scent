@@ -603,13 +603,16 @@ window.renderMyPage = async function(){
   root.innerHTML = `<div class="card pad pc-empty">불러오는 중…</div>`;
 
   const uid = ME.id;
-  const [diaryR, postsR, reviewsR, alertsR] = await Promise.all([
+  const [diaryR, postsR, reviewsR, alertsR, collsR] = await Promise.all([
     sb.from("diary").select("*").eq("user_id", uid).order("worn_on", { ascending: false }).limit(80),
     sb.from("posts").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(80),
     sb.from("reviews").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(80),
     sb.from("price_alerts").select("perfume_key").eq("user_id", uid),
+    sb.from("collections").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
   ]);
   const diary = diaryR.data || [], posts = postsR.data || [], reviews = reviewsR.data || [], alerts = alertsR.data || [];
+  const colls = collsR.data || [];
+  const owned = colls.filter(c => c.status !== "wish"), wish = colls.filter(c => c.status === "wish");
   const joined = ME.created_at ? new Date(ME.created_at).toLocaleDateString("ko-KR") : "";
   const email = isGuest() ? "비회원 계정" : (ME.email || "-");
   const BOARD = { free: "자유게시판", collection: "컬렉션 자랑" };
@@ -631,12 +634,28 @@ window.renderMyPage = async function(){
       <button class="mp-del" data-t="reviews" data-id="${r.id}">✕</button></div>`).join("")
     : `<div class="pc-empty">아직 작성한 구매평이 없어요.</div>`;
 
+  const collCard = c => {
+    const p = perfById(c.perfume_key);
+    const art = (p && p._img) ? `<img src="${esc2(p._img)}" alt="" loading="lazy">` : `<span class="cc-ph">🧴</span>`;
+    return `<div class="cc-card" data-k="${esc2(c.perfume_key)}">
+      <button class="cc-del" data-id="${c.id}" title="삭제">✕</button>
+      <div class="cc-art">${art}</div>
+      <div class="cc-info"><div class="cc-brand">${esc2(c.brand || (p && p.brand) || "")}</div><div class="cc-name">${esc2(c.perfume_name || (p && p.name) || c.perfume_key)}</div></div>
+    </div>`;
+  };
+  const ownedHTML = owned.length ? `<div class="cc-grid">${owned.map(collCard).join("")}</div>`
+    : `<div class="pc-empty">아직 향수장이 비어있어요. 향수 상세에서 <b>🧴 향수장에 추가</b>를 눌러보세요.</div>`;
+  const wishHTML = wish.length ? `<div class="cc-grid">${wish.map(collCard).join("")}</div>`
+    : `<div class="pc-empty">위시리스트가 비어있어요. 향수 상세에서 <b>💛 위시</b>를 눌러 담아보세요.</div>`;
+
   root.innerHTML = `
     <div class="card pad mp-head">
       <div class="mp-avatar">${esc2((myNick()[0] || "🙂").toUpperCase())}</div>
       <div class="mp-id"><b>${esc2(myNick())}님</b><small>${esc2(email)}${joined ? ` · ${joined} 가입` : ""}</small></div>
     </div>
-    <div class="mp-stats">${stat(diary.length, "캘린더")}${stat(posts.length, "내 글")}${stat(reviews.length, "구매평")}${stat(alerts.length, "목표가 알림")}</div>
+    <div class="mp-stats">${stat(owned.length, "향수장")}${stat(wish.length, "위시")}${stat(diary.length, "캘린더")}${stat(reviews.length, "구매평")}</div>
+    <div class="prices-sec"><h3>🧴 나만의 향수장</h3>${ownedHTML}</div>
+    <div class="prices-sec"><h3>💛 위시리스트</h3>${wishHTML}</div>
     <div class="prices-sec"><h3>📅 내 향수 캘린더</h3><div class="card pad mp-list">${diaryHTML}</div></div>
     <div class="prices-sec"><h3>✍️ 내가 쓴 글</h3><div class="card pad mp-list">${postsHTML}</div></div>
     <div class="prices-sec"><h3>⭐ 내 구매평</h3><div class="card pad mp-list">${reviewsHTML}</div></div>
@@ -647,6 +666,13 @@ window.renderMyPage = async function(){
     await sb.from(b.dataset.t).delete().eq("id", b.dataset.id);
     window.renderMyPage();
   });
+  root.querySelectorAll(".cc-del").forEach(b => b.onclick = async (e) => {
+    e.stopPropagation();
+    await sb.from("collections").delete().eq("id", b.dataset.id);
+    window.__collCache = null;       // 캐시 무효화
+    window.renderMyPage();
+  });
+  root.querySelectorAll(".cc-card").forEach(c => c.onclick = () => { const p = perfById(c.dataset.k); if (p && window.openModal) window.openModal(p); });
 };
 
 /* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
@@ -678,6 +704,28 @@ window.toggleWatch = async function(p, btn){
     if (btn){ btn.classList.add("on"); btn.textContent = "✓ 시세 추적 중 · 홈에서 보기"; }
   }
   renderHomeWatch();
+};
+
+/* ---------- 나만의 향수장 / 위시리스트 ---------- */
+/* localStorage 캐시(즉시 버튼 상태) + 로그인 시 서버(collections) 동기화 */
+function getColl(){ try{ return JSON.parse(localStorage.getItem("collection") || "{}") || {}; }catch(e){ return {}; } }
+function setColl(o){ try{ localStorage.setItem("collection", JSON.stringify(o)); }catch(e){} }
+window.inCollection = function(id){ return getColl()[id] || null; };   // 'owned' | 'wish' | null
+window.toggleCollection = async function(p, status, btn){
+  if (!p || p._api) return null;
+  const c = getColl();
+  const cur = c[p.id] || null;
+  let next;
+  if (cur === status){ delete c[p.id]; next = null; }   // 같은 버튼 다시 → 해제
+  else { c[p.id] = status; next = status; }
+  setColl(c);
+  if (sb && ME){
+    try{
+      if (next) await sb.from("collections").upsert({ user_id: ME.id, perfume_key: p.id, perfume_name: p.name, brand: p.brand, status: next }, { onConflict: "user_id,perfume_key" });
+      else await sb.from("collections").delete().eq("perfume_key", p.id).eq("user_id", ME.id);
+    }catch(e){}
+  }
+  return next;
 };
 
 async function openWatchPicker(){
