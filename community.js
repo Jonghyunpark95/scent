@@ -745,7 +745,7 @@ window.renderCabinet = async function(){
   root.innerHTML = `
     ${mine ? `<div class="sec-h"><span class="num">🧴 향수장</span><h2>나만의 향수장</h2><p>보유 향수와 구매일·유통기한을 기록하고 공유하세요</p></div>` : ""}
     ${shareBox}
-    <div class="prices-sec"><h3>🧴 보유 향수 <small>(${owned.length})</small></h3>${ownedHTML}</div>
+    <div class="prices-sec"><h3>🧴 보유 향수 <small>(${owned.length})</small>${mine ? ` <button class="cb-add" id="cbAdd">+ 향수 추가</button>` : ""}</h3>${ownedHTML}</div>
     ${(mine || wish.length) ? `<div class="prices-sec"><h3>💛 위시리스트 <small>(${wish.length})</small></h3>${wishHTML}</div>` : ""}`;
 
   root.querySelectorAll(".cb-card").forEach(c => c.addEventListener("click", e => {
@@ -764,6 +764,8 @@ window.renderCabinet = async function(){
   if (tg) tg.onclick = async () => { await sb.from("collections").update({ is_public: !anyPublic }).eq("user_id", ME.id); window.renderCabinet(); };
   const cp = document.getElementById("cbCopy");
   if (cp) cp.onclick = () => { const i = document.getElementById("cbLink"); if (!i) return; i.select(); try { navigator.clipboard.writeText(i.value); cp.textContent = "복사됨!"; setTimeout(() => cp.textContent = "복사", 1500); } catch (e) {} };
+  const add = document.getElementById("cbAdd");
+  if (add) add.onclick = () => window.openCabinetPicker();
 };
 
 /* 사용자가 추적하려는 향수를 서버에 등록 → 크론이 매일 시세를 수집 */
@@ -818,6 +820,52 @@ window.toggleCollection = async function(p, status, btn){
   }
   return next;
 };
+/* 상태를 토글이 아니라 '설정'(피커용) */
+async function setCollectionStatus(p, status){
+  if (!p || p._api) return;
+  const c = getColl(); c[p.id] = status; setColl(c);
+  if (sb && ME){ try{ await sb.from("collections").upsert({ user_id: ME.id, perfume_key: p.id, perfume_name: p.name, brand: p.brand, status }, { onConflict: "user_id,perfume_key" }); }catch(e){} }
+}
+
+/* 향수장 추가 피커 (검색 → 🧴 보유 / 💛 위시) */
+async function openCabinetPicker(){
+  const m = ensureModal("cabPickModal"); openM(m);
+  const all = (typeof PERFUMES !== "undefined" ? PERFUMES : []).filter(p => !p._api);
+  const have = getColl();
+  m.innerHTML = `<div class="box card pad" style="max-width:460px;position:relative">
+    <button class="close" data-close>✕</button>
+    <h3 style="margin:0 0 6px">향수장에 추가</h3>
+    <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">검색해서 <b>🧴 보유</b> 또는 <b>💛 위시</b>로 담아보세요.</p>
+    <input class="watch-search" id="cabSearch" placeholder="🔍 향수명 또는 브랜드 검색 (예: 이솝, 샤넬)" autocomplete="off">
+    <div class="watch-pick" id="cabPick"></div></div>`;
+  wireClose(m);
+  const pickBox = m.querySelector("#cabPick"), si = m.querySelector("#cabSearch");
+  const nrm = s => (s || "").toLowerCase().replace(/\s+/g, "");
+  function render(q){
+    const nq = nrm(q);
+    const list = all.filter(p => !nq || nrm(p.name + p.brand).includes(nq)).slice(0, 80);
+    pickBox.innerHTML = list.length ? list.map(p => {
+      const st = have[p.id];
+      return `<div class="cabpick-row">
+        <span><b>${esc2(p.name)}</b> <span style="color:var(--muted);font-size:12px">${esc2(p.brand)}</span></span>
+        <span class="cabpick-btns">
+          <button class="cabpick-b ${st === "owned" ? "on" : ""}" data-s="owned" data-k="${esc2(p.id)}">🧴</button>
+          <button class="cabpick-b ${st === "wish" ? "on" : ""}" data-s="wish" data-k="${esc2(p.id)}">💛</button>
+        </span></div>`;
+    }).join("") : `<div class="empty-state" style="padding:16px">검색 결과가 없어요 🙂</div>`;
+    pickBox.querySelectorAll(".cabpick-b").forEach(b => b.onclick = async () => {
+      const p = perfById(b.dataset.k); if (!p) return;
+      await setCollectionStatus(p, b.dataset.s);
+      have[b.dataset.k] = b.dataset.s;
+      render(si.value);
+      if (window.renderCabinet) window.renderCabinet();
+    });
+  }
+  render("");
+  si.addEventListener("input", () => render(si.value));
+  setTimeout(() => si.focus(), 50);
+}
+window.openCabinetPicker = openCabinetPicker;
 
 async function openWatchPicker(){
   const m = ensureModal("watchModal"); openM(m);

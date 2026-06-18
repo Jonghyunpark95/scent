@@ -523,6 +523,63 @@ PERFUMES.push(
   { id:"pen-lordgeorge", brand:"펜할리곤스", name:"더 트래지디 오브 로드 조지", en:"Penhaligon's The Tragedy of Lord George", gender:"남성", price:330000, top:["rum"], middle:["tonka","cinnamon"], base:["amber","sandalwood","cedar"], desc:"브랜디와 통카의 따뜻하고 고급스러운 향" },
 );
 
+/* === 백화점 인기 브랜드 추가 (이솝·프레데릭 말·겔랑·버버리·SMN·메모·JHAG·엑스니힐로 등) === */
+PERFUMES.push(
+  // 이솝 (Aesop)
+  { id:"aesop-tacit", brand:"이솝", name:"타싯", en:"Aesop Tacit", gender:"유니섹스", price:120000, top:["lemon","grapefruit"], middle:["basil"], base:["vetiver"], desc:"유자·바질의 청량한 그린 시트러스" },
+  { id:"aesop-hwyl", brand:"이솝", name:"하윌", en:"Aesop Hwyl", gender:"유니섹스", price:160000, top:["greenleaves"], middle:["cypress"], base:["vetiver","incense","cedar"], desc:"안개 낀 숲 같은 우디·인센스" },
+  { id:"aesop-marrakech", brand:"이솝", name:"마라케시 인텐스", en:"Aesop Marrakech Intense", gender:"유니섹스", price:150000, top:["cardamom","clove"], middle:["rose","jasmine"], base:["sandalwood","cedar"], desc:"스파이스와 샌달우드의 따뜻한 향" },
+  { id:"aesop-rozu", brand:"이솝", name:"로주", en:"Aesop Rozu", gender:"유니섹스", price:200000, top:["pinkpepper"], middle:["rose"], base:["cedar","vetiver"], desc:"현대적이고 우디한 로즈" },
+  { id:"aesop-eidesis", brand:"이솝", name:"에이데시스", en:"Aesop Eidesis", gender:"유니섹스", price:200000, top:["cardamom"], middle:["incense"], base:["cedar","amber"], desc:"은은한 인센스와 우드의 깊이" },
+  { id:"aesop-miraceti", brand:"이솝", name:"미라세티", en:"Aesop Miraceti", gender:"유니섹스", price:200000, top:["pepper"], middle:["labdanum"], base:["ambergris","cedar"], desc:"앰버그리스의 짭조름하고 따뜻한 우디" },
+
+  // 프레데릭 말 (Editions de Parfums Frederic Malle)
+  { id:"malle-portrait", brand:"프레데릭 말", name:"포트레이트 오브 어 레이디", en:"Frederic Malle Portrait of a Lady", gender:"여성", price:380000, top:["pinkpepper","raspberry"], middle:["rose"], base:["patchouli","incense","sandalwood"], desc:"장미와 파출리·인센스의 강렬하고 우아한 향" },
+  { id:"malle-carnal", brand:"프레데릭 말", name:"카날 플라워", en:"Frederic Malle Carnal Flower", gender:"여성", price:400000, top:["bergamot"], middle:["tuberose","ylang","jasmine"], base:["musk"], desc:"관능적인 튜베로즈 화이트 플로럴" },
+  { id:"malle-musc", brand:"프레데릭 말", name:"뮤스크 라바저", en:"Frederic Malle Musc Ravageur", gender:"유니섹스", price:350000, top:["bergamot","cinnamon"], middle:["clove"], base:["musk","vanilla","amber"], desc:"따뜻하고 관능적인 머스크·바닐라" },
+  { id:"malle-magnolia", brand:"프레데릭 말", name:"오 드 마그놀리아", en:"Frederic Malle Eau de Magnolia", gender:"유니섹스", price:330000, top:["bergamot","lemon"], middle:["magnolia"], base:["vetiver","oakmoss"], desc:"상큼하게 피어나는 목련" },
+  { id:"malle-frenchlover", brand:"프레데릭 말", name:"프렌치 러버", en:"Frederic Malle French Lover", gender:"남성", price:330000, top:["greenleaves"], middle:["incense"], base:["cedar","vetiver"], desc:"안젤리카와 우드의 차분한 남성향" },
+  { id:"malle-synthetic", brand:"프레데릭 말", name:"신세틱 정글", en:"Frederic Malle Synthetic Jungle", gender:"유니섹스", price:330000, top:["blackcurrant"], middle:["greenleaves","jasmine"], base:["musk","oakmoss"], desc:"초록빛 시트러스 플로럴 시프레" },
+
+  // 겔랑 (Guerlain)
+  { id:"guerlain-shalimar", brand:"겔랑", name:"샬리마", en:"Guerlain Shalimar", gender:"여성", price:180000, top:["bergamot","lemon"], middle:["iris","jasmine"], base:["vanilla","leather","incense"], desc:"바닐라와 가죽의 관능적 오리엔탈 클래식" },
+  { id:"guerlain-monguerlain", brand:"겔랑", name:"몽 겔랑", en:"Guerlain Mon Guerlain", gender:"여성", price:150000, top:["bergamot"], middle:["lavender","jasmine"], base:["vanilla","sandalwood"], desc:"라벤더와 바닐라의 부드러운 향" },
+  { id:"guerlain-aquamandarine", brand:"겔랑", name:"아쿠아 알레고리아 만다린 바질릭", en:"Guerlain Aqua Allegoria Mandarine Basilic", gender:"유니섹스", price:130000, top:["mandarin","lemon"], middle:["basil"], base:["musk"], desc:"만다린과 바질의 상큼한 향" },
+  { id:"guerlain-lhommeideal", brand:"겔랑", name:"롬므 이데알", en:"Guerlain L'Homme Ideal", gender:"남성", price:130000, top:["bergamot","almond"], middle:["leather"], base:["cedar","vanilla","tonka"], desc:"아몬드와 우드의 세련된 남성향" },
+  { id:"guerlain-petiterobe", brand:"겔랑", name:"라 쁘띠 로브 누아", en:"Guerlain La Petite Robe Noire", gender:"여성", price:140000, top:["raspberry"], middle:["rose"], base:["vanilla","tonka"], desc:"체리·로즈·바닐라의 달콤한 향" },
+
+  // 버버리 (Burberry)
+  { id:"burberry-her", brand:"버버리", name:"버버리 허", en:"Burberry Her", gender:"여성", price:110000, top:["blackcurrant","raspberry"], middle:["jasmine","violet"], base:["musk","amber"], desc:"베리 가득한 달콤한 머스크" },
+  { id:"burberry-brit", brand:"버버리", name:"버버리 브릿 포 허", en:"Burberry Brit for Her", gender:"여성", price:90000, top:["lemon","pear"], middle:["almond"], base:["vanilla","amber","tonka"], desc:"아몬드와 바닐라의 포근한 향" },
+  { id:"burberry-london", brand:"버버리", name:"버버리 런던 포 맨", en:"Burberry London for Men", gender:"남성", price:90000, top:["bergamot","lavender"], middle:["cinnamon"], base:["leather","tobacco"], desc:"라벤더와 가죽의 클래식 남성향" },
+
+  // 산타 마리아 노벨라 (Santa Maria Novella)
+  { id:"smn-colonia", brand:"산타 마리아 노벨라", name:"콜로니아", en:"Santa Maria Novella Colonia", gender:"유니섹스", price:200000, top:["bergamot","lemon","orange"], middle:["lavender"], base:["musk"], desc:"이탈리아 정통 시트러스 콜로뉴" },
+  { id:"smn-melograno", brand:"산타 마리아 노벨라", name:"멜로그라노", en:"Santa Maria Novella Melograno", gender:"유니섹스", price:220000, top:["bergamot"], middle:["rose","clove"], base:["musk","oakmoss"], desc:"석류·스파이스의 클래식한 향" },
+  { id:"smn-nostalgia", brand:"산타 마리아 노벨라", name:"노스탤지어", en:"Santa Maria Novella Nostalgia", gender:"남성", price:230000, top:["pepper"], middle:["leather"], base:["cedar","amber","tobacco"], desc:"가죽과 우드의 빈티지한 향" },
+
+  // 메모 파리 (Memo Paris)
+  { id:"memo-marfa", brand:"메모 파리", name:"마르파", en:"Memo Paris Marfa", gender:"유니섹스", price:320000, top:["bergamot"], middle:["tuberose","jasmine"], base:["vanilla","leather"], desc:"튜베로즈와 바닐라의 포근한 향" },
+  { id:"memo-italianleather", brand:"메모 파리", name:"이탈리안 레더", en:"Memo Paris Italian Leather", gender:"유니섹스", price:320000, top:["bergamot","saffron"], middle:["jasmine"], base:["leather","amber"], desc:"부드러운 스웨이드 가죽향" },
+  { id:"memo-africanleather", brand:"메모 파리", name:"아프리칸 레더", en:"Memo Paris African Leather", gender:"유니섹스", price:320000, top:["cardamom","saffron"], middle:["geranium"], base:["leather","oud","musk"], desc:"스파이시한 가죽과 우드" },
+
+  // 줄리엣 헤즈 어 건 (Juliette Has a Gun)
+  { id:"jhag-notaperfume", brand:"줄리엣 헤즈 어 건", name:"낫 어 퍼퓸", en:"Juliette Has a Gun Not a Perfume", gender:"유니섹스", price:130000, top:["ambrette"], middle:["musk"], base:["amber"], desc:"앰브록산 단일 노트의 깨끗한 향" },
+  { id:"jhag-ladyvengeance", brand:"줄리엣 헤즈 어 건", name:"레이디 벤전스", en:"Juliette Has a Gun Lady Vengeance", gender:"여성", price:150000, top:["rose"], middle:["jasmine"], base:["patchouli","vanilla","musk"], desc:"장미와 파출리의 관능적인 향" },
+  { id:"jhag-vanillavibes", brand:"줄리엣 헤즈 어 건", name:"바닐라 바이브즈", en:"Juliette Has a Gun Vanilla Vibes", gender:"유니섹스", price:150000, top:["bergamot"], middle:["honey"], base:["vanilla","musk"], desc:"포근하고 깨끗한 바닐라 머스크" },
+
+  // 엑스 니힐로 (Ex Nihilo)
+  { id:"exnihilo-fleurnarcotique", brand:"엑스 니힐로", name:"플레르 나르코틱", en:"Ex Nihilo Fleur Narcotique", gender:"유니섹스", price:320000, top:["bergamot","peach"], middle:["peony","jasmine"], base:["musk","oakmoss"], desc:"복숭아·피오니의 우아한 시그니처 플로럴" },
+
+  // 조르지오 아르마니 (추가)
+  { id:"armani-adgmen", brand:"조르지오 아르마니", name:"아쿠아 디 지오", en:"Giorgio Armani Acqua di Gio", gender:"남성", price:120000, top:["bergamot","marine"], middle:["jasmine","rosemary"], base:["patchouli","cedar"], desc:"바다 같은 청량한 아쿠아틱" },
+  { id:"armani-code", brand:"조르지오 아르마니", name:"아르마니 코드", en:"Giorgio Armani Code", gender:"남성", price:110000, top:["bergamot"], middle:["orangeblossom"], base:["tonka","leather"], desc:"통카·가죽의 관능적인 남성향" },
+  { id:"armani-strongerwithyou", brand:"조르지오 아르마니", name:"스트롱거 위드 유", en:"Emporio Armani Stronger With You", gender:"남성", price:120000, top:["cardamom","pinkpepper"], middle:["sage","lavender"], base:["vanilla","chestnut","amber"], desc:"달콤한 밤·바닐라의 따뜻한 향" },
+
+  // 에르메스 (추가)
+  { id:"hermes-unjardinnil", brand:"에르메스", name:"운 자르댕 슈르 르 닐", en:"Hermes Un Jardin Sur Le Nil", gender:"유니섹스", price:130000, top:["grapefruit","mandarin"], middle:["lotus","peach"], base:["incense","musk"], desc:"푸른 정원의 싱그러운 향" },
+);
+
 /* === Node(서버리스 함수)에서도 데이터 재사용 — 브라우저에선 module이 undefined라 무시됨 === */
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { NOTES, NOTE_FAMILIES, PERFUMES, EN_NAMES, BRAND_EN };
